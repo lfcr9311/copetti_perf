@@ -1,0 +1,14 @@
+# bases grandes: vao comprimidas (.pdm.gz)
+CAFM-EDB-015.pdm
+CAFM-EDB-002.pdm
+*.part
+# senha do servidor
+.env
+# temporarios e compilacao
+scap_py/work/
+scap_py/resultados/
+__pycache__/
+.vs/
+x64/
+Debug/
+*.bak

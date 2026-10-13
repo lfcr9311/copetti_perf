@@ -1,0 +1,20 @@
+(0)    Dry check
+(1)    Structural weight
+(2)    All engine takeoff distance limitation
+(3)    One engine out takeoff distance limitation
+(9)    VMCG
+(10)  Tire speed limitation
+(12)  Maximum brake energy limitation
+(13)  Minimum certified V2 (VMCA)
+(14)  First segment climb gradient limitation
+(15)  Second segment climb gradient limitation
+(17)  Acceleration segment (third segment) limitation
+(18)  Final segment climb gradient limitation
+(19)  Obstacle clearance limitation
+(20)  One engine out takeoff run limitation
+(21)  All engine takeoff run limitation
+(24)  Uphill runway slope limitation
+(25)  One engine out runway length limitation (ATR) (BOEING)
+(26)  All engine runway length limitation (ATR)
+(30)  Minimum V2 limited by VMU
+(51)  Fuel Dump exemption (or go-around) limitation

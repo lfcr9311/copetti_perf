@@ -1,0 +1,57 @@
+5 6                                    { Standard input and output logical units
+30 31 32 33 34 35 36 37 38 39          { Available logical units
+N/A
+N/A
+FULL 
+errors.tra                                                                      _          _  { trace file name
+warn.tra                                                                        _          _  { trace file name
+.\config\errors.cnf                                                                  _          _  { errors config_1602uration file
+.\config\limits.cnf                                                                         _          _  { limits config_1602uration file
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+N/A
+

@@ -1,0 +1,13 @@
+# fora da imagem: Git, Visual Studio, compilacao, arquivos temporarios
+.git
+.gitignore
+.vs
+x64
+Debug
+**/__pycache__
+scap_py/work
+scap_py/resultados
+*.bak
+*.pdb
+.zip
+.env

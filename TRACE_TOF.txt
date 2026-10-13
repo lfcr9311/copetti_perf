@@ -1,0 +1,161 @@
+#
+#==============================================================================
+#
+#				CAFM-E2 - EMBRAER Computerized Airplane Flight Manual
+#
+#		Trace output file
+#		Module     : 'Takeoff        '
+#		Date       : '14-Sep-26      '
+#		Time       : '16:44:59       '
+#
+#==============================================================================
+#	Alphanumerical Inputs
+#==============================================================================
+#
+	dbAirframe      : 'CAFM-ADB-069    '
+	dbAirframeDate  : '19 SEP 2023     '
+	dbEngine        : 'CAFM-EDB-015    '
+	dbEngineDate    : '23 AUG 2021     '
+	airplaneModel   : 'E195-E2         '
+	certType        : 'ANAC            '
+	engModel        : 'PW1923G-A       '
+	dbType          : 'Normal Operation'
+#
+#==============================================================================
+#	Numerical Inputs
+#==============================================================================
+#
+	brakeModel                          :        0.000000
+	weight                              :    62300.000000
+	hpType                              :        1.000000
+	hp                                  :     1013.000000
+	airportElevation                    :        0.000000
+	oat                                 :       30.000000
+	assumedTempFlag                     :        0.000000
+	cg                                  :       13.000000
+	slopeAsda                           :        0.000000
+	slopeToda                           :        0.000000
+	toda                                :     4000.000000
+	tora                                :     4000.000000
+	asda                                :     4000.000000
+	alignmentToda                       :        0.000000
+	alignmentAsda                       :        0.000000
+	windSpeed                           :        0.000000
+	userBrakingFrictionCoefficient      :        6.000000
+	contaminantDepth                    :        0.000000
+	flapPosition                        :        4.000000
+	landingFlapPosition                 :        5.000000
+	ecs                                 :        0.000000
+	iceProtection                       :        0.000000
+	attcs                               :        1.000000
+	iceAccretion                        :        0.000000
+	tireType                            :        1.000000
+	engineRate                          :        1.000000
+	surfaceType                         :        0.000000
+	runwayCondition                     :        0.000000
+	autoBrake                           :        0.000000
+	takeoffMode                         :        0.000000
+	v2vsi                               :        1.180000
+	v1Option                            :        0.000000
+	v1FixedIndicated                    : 899999982852417520000.000000
+	reverserStatus                      :        0.000000
+	gradient2SegmentFlag                :        0.000000
+	gradient2Segment                    : 899999982852417520000.000000
+	dragIndex                           :        0.000000
+	dryXWetContaminatedCheck            :        0.000000
+	flightPathOption                    :        0.000000
+	levelOffHeightOutputOption          :        2.000000
+	levelOffHeightInputValue            :      400.000000
+	obstacleClearanceHeight             :       35.000000
+	thrustTimeLimit                     :        5.000000
+	numberOfObstacles                   :        0.000000
+#
+#==============================================================================
+#	Measuring Units
+#==============================================================================
+#
+	lengthUnit      :        0.000000
+	weightUnit      :        0.000000
+	heightUnit      :        1.000000
+	temperatureUnit :        0.000000
+	speedUnit       :        2.000000
+	contDepthUnit   :        1.000000
+	energyUnit      :        0.000000
+	timeUnit        :        0.000000
+	baroPressureUnit:        0.000000
+#
+#==============================================================================
+#	Numerical Outputs
+#==============================================================================
+#
+	wLim_RTOW                :    62300.000000
+	wField_AEO               :    62500.000000
+	wField_OEI               :    62500.000000
+	wLimWat_1st              :    62500.000000
+	wLimWat_2st              :    62500.000000
+	wLimWat_final            :    62500.000000
+	wLim_tire                :    62500.000000
+	wLim_GA                  :    62500.000000
+	wLim_Climb               :    62500.000000
+	wLim_Obst                :  9999999.000000
+	obst_lim_id              :        0.000000
+	fstLimCodeV1_RTOW        :        1.000000
+	vsi                      :      117.772014
+	vs_upup_i                :      169.393688
+	vmcg_i                   :      102.747213
+	vmca_i                   :      101.637218
+	v2i                      :      137.575416
+	vri                      :      132.833158
+	vmu_Normal_OEI_i         :       50.000009
+	vmu_Relaxed_OEI_i        :      124.970908
+	v1_i                     :      131.456417
+	vmu_Normal_AEO_i         :       50.000009
+	vmu_Relaxed_AEO_i        :      124.970908
+	vfs_i                    :      220.211787
+	s_OEI_ag                 :     1853.776842
+	sr_OEI_ag                :     1853.776842
+	t_OEI_ag                 :       39.394206
+	tod_ref                  :     2499.937913
+	hg_tod_ref               :       35.000000
+	asd                      :     1854.137709
+	s_AEO_ag                 :     1708.072350
+	sr_AEO_ag                :     1708.072350
+	eng_N1_to                :       88.590781
+	attitudeAngle            :       10.500000
+	v1Vr_RTOW_i              :        0.989636
+	v2Vs_RTOW_i              :        1.168150
+	t_1st_seg                :       46.226700
+	s_1st_seg                :     2996.417160
+	h_gross_1st_seg          :       87.016181
+	h_net_1st_seg            :       73.985230
+	t_2nd_seg                :       81.979890
+	s_2nd_seg                :     5599.268306
+	h_gross_2nd_seg          :      400.000000
+	h_net_2nd_seg            :      318.716591
+	hp_2nd_seg               :      380.140630
+	t_acc_seg                :      164.144745
+	s_gross_accseg           :    13255.088279
+	s_net_accseg             :    14594.042718
+	t_fn_seg                 :      302.393907
+	s_gross_fnseg            :    29691.558776
+	s_net_fnseg              :    31030.513216
+	h_gross_fnseg            :     3035.000000
+	h_net_fnseg              :     2523.103732
+#
+#==============================================================================
+#	Authority Approval Statement
+#==============================================================================
+#
+	Statement         : 'Approved by ANAC                                                '
+#
+#==============================================================================
+#	Execution Warnings
+#==============================================================================
+#
+#==============================================================================
+#	Execution Errors
+#==============================================================================
+#
+#
+#==============================================================================
+#

@@ -1,0 +1,30 @@
+# Sobe o programa + o Caddy (HTTPS automatico). Configure no arquivo .env
+# (copie de .env.example). Ver scap_py/DOCKER.md.
+services:
+  perf:
+    build: .
+    image: performance-decolagem
+    restart: unless-stopped
+    environment:
+      PERF_PASSWORD: ${PERF_PASSWORD:?defina PERF_PASSWORD no arquivo .env}
+      PERF_WORKERS: ${PERF_WORKERS:-}
+      PERF_CORS_ORIGIN: ${PERF_CORS_ORIGIN:-}
+    volumes:
+      - resultados:/app/scap_py/resultados
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on: [perf]
+    ports:
+      - "80:80"
+      - "443:443"
+    # com PERF_DOMAIN (ex. perf.suaempresa.com) o Caddy pega o certificado
+    # HTTPS sozinho; sem dominio, fica so em http na porta 80
+    command: caddy reverse-proxy --from ${PERF_DOMAIN:-:80} --to perf:8765
+    volumes:
+      - caddy_data:/data
+
+volumes:
+  resultados:
+  caddy_data:

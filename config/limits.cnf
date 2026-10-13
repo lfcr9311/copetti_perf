@@ -1,0 +1,1504 @@
+20869286
+PRODUCT_FAMILY  OCTOPUS
+PRODUCT_VERSION 39.0.0
+402  0.0      110.0     { Limitation for Constant N1 (NADP flight segments computation)
+2  0.       0.5       { CD deterioration                           
+7  0.       0.5       { CL deterioration                           
+8  0.       0.5       { CL max deterioration                       
+10  -0.08727 0.5236    { Maximum pitch attitude                     
+11  0.       300000.   { Aircraft weight                            
+15  218.15   303.15    { DISA on temperature
+18 -609.6    4419.6    { Pressure altitude                          
+19  0.       12649.2   { Pressure altitude initial point
+20 -609.6    12649.2   { Pressure altitude absolute limitations
+267 -1524.0   15240.0   { Pressure altitude limitations for wind and temperature definition (operational flight)
+21  50000.   150000.   { Pressure                                   
+24  203.15   333.15    { Temperature                                
+25  202.15   328.15    { Temperature for flight path atmos. definition
+26  0.       6.2831853 { Wind direction                             
+27 -41.15556 41.15556  { Wind force                                 
+30 -12.8611  12.8611   { Wind in y axis (on ground)                 
+31  218.15   303.15    { DISA temperature for autoland
+245    46.30 205.7778  { VR (CAS) limitation
+32  2.       20.       { Number of chart columns
+91 -6.283185 6.2831853 { Delta Heading
+35  0.       1.        { user's additionnal TOD1 degradation limitation 
+36  0.       1.        { user's additionnal TOR1 degradation limitation 
+37  0.       1.        { user's additionnal ASD1 degradation limitation 
+38  0.       1.        { user's additionnal TOD0 degradation limitation 
+39  0.       1.        { user's additionnal TOR0 degradation limitation 
+40  0.       1.        { user's additionnal ASD0 degradation limitation 
+41  0.       1.        { user's additionnal FSG degradation limitation 
+42  0.       1.        { user's additionnal SSG degradation limitation 
+43  0.       1.        { user's additionnal FTO degradation limitation 
+44  0.       1.        { user's additionnal VMCG degradation limitation 
+45  0.       1.        { user's additionnal VMCA degradation limitation 
+46   0.       1.        { user's additionnal VMU degradation limitation 
+442  0.       1.        { user's additionnal Vmin_man degradation limitation 
+472 -25.72222 25.72222  { user's additionnal VLS degradation limitation 
+234  0.       1.        { user's additionnal V Tyre degradation limitation 
+47  0.       1.        { user's additionnal Emax degradation limitation 
+48  0.       1.        { user's additionnal ACG degradation limitation 
+49  0.       1.        { user's additionnal LCG degradation limitation 
+50   0.       1.        { user's additionnal LD degradation limitation 
+51  0.       1.        { user's additionnal VMCL degradation limitation 
+52  0.       2.        { user's coefficient TOD1 degradation limitation 
+53  0.       2.        { user's coefficient TOR1 degradation limitation 
+54  0.       2.        { user's coefficient ASD1 degradation limitation 
+55  0.       2.        { user's coefficient TOD0 degradation limitation 
+56  0.       2.        { user's coefficient TOR0 degradation limitation 
+57  0.       2.        { user's coefficient ASD0 degradation limitation 
+58  0.       2.        { user's coefficient FSG degradation limitation 
+59  0.       2.        { user's coefficient SSG degradation limitation 
+60  0.       2.        { user's coefficient FTO degradation limitation 
+61  0.       2.        { user's coefficient VMCG degradation limitation 
+62  0.       2.        { user's coefficient VMCA degradation limitation 
+63   0.       2.        { user's coefficient VMU degradation limitation 
+443  0.       2.        { user's coefficient Vmin_man degradation limitation 
+473  0.1      2.        { user's coefficient VLS degradation limitation 
+235  0.       2.        { user's coefficient V Tyre degradation limitation 
+64  0.       2.        { user's coefficient Emax degradation limitation 
+65  0.       2.        { user's coefficient ACG degradation limitation 
+66  0.       2.        { user's coefficient LCG degradation limitation 
+67   0.       2.        { user's coefficient LD degradation limitation 
+68  0.       2.        { user's coefficient VMCL degradation limitation 
+69   0.       100.0     { User's additionnal CD degradation            
+70   0.       100.0     { User's additionnal CL degradation            
+71  0.       100.0     { User's additionnal CLmax degradation         
+72  0.       1.        { User's additionnal net thrust degradation 
+73  0.       1.        { User's additionnal consumption degradation   
+74  0.       1.        { User's additionnal VMCG degradation          
+75  0.       1.        { User's additionnal VMCA degradation          
+76  0.       1.        { User's additionnal VMU degradation           
+444  0.       1.        { User's additionnal Vmin_man degradation          
+474 -25.72222 25.72222  { user's additionnal VLS degradation  
+77  0.       1.        { User's additionnal VMCL degradation          
+236  0.       1.        { User's additionnal V Tyre degradation          
+78  0.       1.        { User's additionnal Energy max degradation    
+79  0.       1.        { User's additionnal Torque max degradation    
+80   0.       2.        { User's coefficient CD degradation           
+81   0.       2.        { User's coefficient CL degradation         
+82  0.       2.        { User's coefficient CLmax degradation 
+83  0.       2.        { User's coefficient net thrust degradation  
+84  0.       2.        { User's coefficient consumption degradation  
+85  0.       2.        { User's coefficient VMCG degradation         
+86  0.       2.        { User's coefficient VMCA degradation         
+87  0.       2.        { User's coefficient VMU degradation          
+445  0.       2.        { User's coefficient Vmin_man degradation      
+475  0.1      2.        { User's coefficient VLS degradation      
+88  0.       2.        { User's coefficient VMCL degradation         
+237  0.       2.        { User's coefficient V Tyre degradation         
+89  0.       2.        { User's coefficient Energy max degradation 
+90  0.       2.        { User's coefficient Torque max degradation
+265  0.       0.        { User's coefficient Brake energy degradation
+266  1.       1.        { User's coefficient Brake energy degradation
+259  0.0      6000.     { distance for performance inversion
+92  0.       200000.   { Delta FN deterioration                     
+96  0.       100.      { k FN deterioration                         
+98  0.       2.        { Number of inoperative engines
+97  1.       2.        { Number of inoperative engines
+510  0.       1.        { Number of inoperative engines
+99  20.      100.      { Fixed PMP value                            
+100  0.       500000.   { Fixed thrust value                         
+103  0.       10.       { Acceleration value                         
+104  0.       9999999.  { Adapted thrust option value initial point  
+105  10.668   1219.2    { Cutback height                             
+106  30.48    1208.532  { Step for cutback height
+108 -0.291457 0.291457  { Gradient initial point                     
+109 -0.291457 0.291457  { Gradient all engine operative
+110 -0.291457 0.291457  { Gradient one engine out
+111  20.      100.      { PMP value after cutback               
+112  1.       80.       { PMP step after cutback               
+113 -15.24    15.24     { Min climb rate all engine operative
+114 -15.24    15.24     { Min climb rate out engine out
+115  0.       20.       { Number of flight phases                    
+116 -0.087266 0.523599  { Pitch attitude initial point               
+417 -0.087266 0.523599  { Target pitch attitude value    
+117  0.0      9999999.  { Time
+263  0.       9999.     { Time
+120 -25.7222  25.7222   { Delta speed value initiale point (delta VC)
+121 -25.7222  25.7222   { VR associated to take-off weight
+122  1.13     1.65      { V/VS for operationnal flight path
+123  123000.  285000.   { Initial take-off weight      
+124  -0.06109 -0.04363   { glide for autoland
+128 -0.2      0.2       { Minimum gradient 2 engines (minimum in aircraft file)
+129 -0.2      0.2       { Minimum gradient 3 engines (minimum in aircraft file)
+130 -0.2      0.2       { Minimum gradient 4 engines (minimum in aircraft file)
+131 -0.2      0.2       { Climb gradient 2 engines (minimum in aircraft file)
+132 -0.2      0.2       { Climb gradient 3 engines (minimum in aircraft file)
+133 -0.2      0.2       { Climb gradient 4 engines (minimum in aircraft file)
+240  0.       9999999.  { Initial half width limitation
+144  0.0      1000.     { Aerial phase value
+275  0.0      6.2831853 { Limit track change
+276  0.       9999999.  { Max W for track change <= limit
+277  0.       9999999.  { Max W for track change > limit
+145  1.0      6.0       { Number of isos for Octores                  
+151 -9999999. 9999999.  { Obstacle H position                        
+153 -9999999. 9999999.  { Obstacle reference                         
+154 -9999999. 9999999.  { Obstacle X position                        
+155 -9999999. 9999999.  { Obstacle Y position                        
+157  0. 41.1555   { Delta VREF                                 
+158  0.       0.1       { Gradient value                             
+159  0.       1.5       { k REF                                      
+227  0.       1.5       { k REF  ferry flight
+160  1.15     2.        { Regulatory coefficient                     
+161  121.92   9999999.  { Lowest lim. gross lev.-off height 
+162 -2000.    2000.     { Additif coefficient on ASDA                
+163  0.       3000.     { Alignement allowance for ASDA              
+164  0.       3000.     { Alignement allowance for TORA              
+167 -1000.    10000.    { Runway elevation                           
+170  500.0    7500.   { LDA
+171 -2500.    2500.     { Additive coefficient on LDA                
+172  0.       1.        { Multiplicative coefficient on LDA          
+173  0.       1.        { Multiplicatif coefficient on ASDA
+180  0.       50.       { Number of obstacles
+239  0.       1.        { Splay angle limitation
+242  0.       9999999.  { Straight path limitation
+193  0.       12649.2   { Height for turn at take-off                
+192  0.       15.       { Total number of turns                      
+243  0.       9999999.  { Turn path limitation
+398 -30000.   30000.    { Turn radius maximum limitation
+194   203.15   333.15    { Temperature for autoland
+196      25.722 205.7778  { V1                                         
+198      46.30 205.7778  { V2                                         
+199  0.0      2.        { V2/VMCA                                    
+202  1.0      2.        { VAPP/VS (CAS ratio)                        
+203  46.30 205.7778  { Speed in auto brake mode                   
+204      46.30 205.7778  { VC                                         
+205   46.30 205.7778  { Speed for engine failure                   
+206  0.       9999999.  { VFTO/VS (CAS ratio)                        
+208       46.30 205.7778  { Speed                                      
+209 -9999999. 9999999.  { VLOF/VMU (CAS ratio) all engines           
+210 -9999999. 9999999.  { VLOF/VMU (CAS ratio) 1 engine out          
+211   -9999999. 9999999.  { VR/V1 (CAS ratio)                          
+212      46.30 205.7778  { VR                                         
+213 -9999999. 9999999.  { VR/VMCA (CAS ratio)                        
+214 -9999999. 9999999.  { VSapp/VSld (CAS ratio)                     
+216 -9999999. 9999999.  { Complete stop landing speed on dry runway  
+217 -9999999. 9999999.  { Complete stop landing speed on wet runway  
+220  1.18     9999999.  { V/VS final take-off (maximum in aircraft file)
+219  1.23     9999999.  { V/VS approach climb (maximum in aircraft file)
+221  1.0      9999999.  { V/VS landing climb gradient (maximum in aircraft file)
+232  -609.6    4419.6    { Pressure altitude for autoland
+250  0.0      90.       { Latitude of Ref 0 (degrees) limitation 
+251  0.0      59.       { Latitude of Ref 0 (minutes) limitation 
+252  0.0      59.99     { Latitude of Ref 0 (seconds) limitation 
+253  0.0      180.      { Longitude of Ref 0 (degrees) limitation 
+254  0.0      59.       { Longitude of Ref 0 (minutes) limitation 
+255  0.0      59.99     { Longitude of Ref 0 (seconds) limitation 
+256  1.0      360.      { Magnetic heading (degrees) limitation 
+257  0.0      60.0      { Magnetic variation value (degrees) limitation 
+258  0.0      9999999.  { Alignment distance limitation 
+264  0.0      999999.   { Distance from initial point
+261  0.0      9999999.  { Maximum takeoff thrust duration limitation 
+262  0.0      9999999.  { Height above ref. 0
+270  0.0      0.785398  { flight path splay angle
+271  0.0      10000.    { initial flight path lateral halfwidth
+272  0.0      99999.    { final   flight path lateral halfwidth
+273  0.0      200.      { runway width
+278   0.0      9999999.  { Ground distance
+469  0.0      999.0     { Beginning value for time from Touch-Down
+470  0.0      999.0     { Beginning value for time from Nose-Down 
+471  0.0      999.0     { Maxpedal beginning condition value
+428  0.0      3048.0    { Delta altitude (ZP) for ACG calculation (runway data) 
+429  0.0      .09966865 { Required ACG on a given runway     (runway data) [0->10%]
+431  0.0     29.0
+455  1.0      2.0       { Landing distance factor
+437  0.0     100.0      { Drag factor
+497    0.00       9144.000    { Transition altitude                           (runway data)   
+476  121.92       3048.000    { Thrust red. height                            (runway data)
+477  121.92       3048.000    { Acc. height                                   (runway data) 
+478    0.00        180.0555   { Initial climb speed                           (runway data) 
+479    0.00       9144.000    { Speed limit altitude                          (runway data) 
+480    0.00        180.0555   { Final climb speed                             (runway data) 
+481    0.0          10.0      { Number of target constraint                   (runway data) 
+482    0.00       9144.000    { Target altitudes                              (runway data) 
+483    0.032988      0.244978 { Target gradients                              (runway data) 
+485 -9999999. 9999999.        { Min OAT temp for take-off chart (default limitation)                    
+492    0.0           2.0      { Gross/Net margin (4th segment)
+493    0.0      1524.0   { Obstacle clearance (4th segment)
+494    0.0      3048.0  { Gross/Net saturation value (4th segment)
+495    0.0      1524.0   { Min Obst. Clearance MOC (4th segment)
+496    0.0      9144.0  { True Altitude (4th segment)
+486 121.92      6096.0 { Target altitude   for go-around method = check average gradient
+487 -9999999.   6096.0 { Decision altitude for go-around method = check average gradient
+488 121.92  3048.0 { Acc. height                                   (runway data) 
+489 0.0         10000.0      { acceleration distance (in case V/Vs optimisation type = acc. distance) */
+509 41.15555 205.7778 { V2 TAS limitation in runway data context 
+0 0. 0.
+2           { Abscissa name list
+Time
+X
+Y
+Height
+Zp
+Gr dist
+*
+3           { ACG Check list
+NO
+YES
+*
+32           { Temperature type
+OAT
+DISA
+* 
+35           { List of possible calculation
+Take-off distance
+Take-off run
+Accelerate stop distance
+First segment gradient
+Second segment gradient
+Complete take-off
+Final take-off gradient
+Approach climb gradient
+Landing climb gradient
+Landing distance
+Automatic braking distance
+Take-off flight path
+En route flight path
+Stalling speed
+Take-off optimisation
+Landing optimisation
+Vmc
+Vmu
+Calibration speed
+*
+40
+NORMAL
+EXTENDED
+*
+42
+VMCA 1 engine out
+VMCA 2 engine out
+VMCG 1 engine out
+VMCG 2 engine out
+VMCL 1 engine out
+VMCL 2 engine out
+VMCA 1 engine out landing gear down
+VMAN
+VMANLAN
+*
+43
+V2/VS limited by VMU
+V2/VS limited by VMU 2 engine out
+V screen height/VS limited by VMU
+*
+45           { Dry Wet comparaison list
+NO
+ACTIVATED
+*
+46           { Calibration level
+MINIMUM ENGINE
+AVERAGE ENGINE
+*
+47
+NET CEILING
+*
+379
+Net Gradient
+*
+55           { Altitude type
+Height
+Pressure altitude
+*
+54            { Flight path abscissa name
+Time              
+Distance          
+*
+56            { Acceleration type
+Constant gradient
+Attitude
+Rate of climb
+Energy sharing (% Ek/Et)
+*
+57            { Climb constraint option after cutback
+Rate of climb all engine operative
+Rate of climb one engine out
+Gradient all engine operative
+Gradient one engine out
+*
+58            { Engine rating type for op. fp. from any point 
+Takeoff
+Go Around
+Max Continuous
+Climb
+Max Cruise
+Idle
+Fixed power management par.
+Adapted thrust
+*
+59            { Engine rating type for op. fp. flight phases
+Same as previous
+Takeoff
+Go Around
+Max Continuous
+Climb
+Max Cruise
+Idle
+Fixed power management par.
+Adapted thrust
+*
+212            { Next thrsut rating limitation
+Max Continuous
+Climb
+Max Cruise
+Flight Idle
+Fixed power management par.
+Adapted thrust
+*
+60            { Engine rating type for noise approach init. 
+Idle
+Fixed power management par.
+Adapted thrust
+*
+61            { Engine rating type for noise approach flight phases 
+Same as previous
+Idle
+Fixed power management par.
+Adapted thrust
+*
+62           { Scan list for cutback
+Standard
+Defined by user
+*
+63           { Segment end code
+Distance X
+Height
+Pressure altitude
+Relative pressure altitude/runway
+Time
+Relative time
+Distance Y
+Speed (CAS)
+Speed (IAS)
+Speed (TAS)
+Speed (Mach)
+Ground distance
+Intercept glideslope (deg)
+End of transition(Transition /= No)
+*
+198
+One end condition
+One of two conditions encountered
+Both of two conditions encountered
+*
+64
+CAS
+IAS
+TAS
+Mach
+*
+65
+CAS
+IAS
+*
+210
+CAS
+IAS
+TAS
+Mach
+K.VSmin + DVC
+*
+66
+CAS
+IAS
+TAS
+Mach
+K.VS1g + DVC
+*
+67
+Rate of climb all engines
+Rate of climb one engine out
+Climb gradient all engines
+Climb gradient one engine out
+*
+68            { Transient code
+None
+Landing gear conf. change
+Aerodynamic conf. change
+*
+69            { Type of phase
+Constant speed
+Acceleration
+*
+70            { Type of profile
+Succession of segments
+Cutback at Climb rating
+Cutback at constant PMP
+Cutback with a climb constraint
+NADP profile
+*
+74            { Influence option list
+NORMAL
+REDUCED
+*
+71            { Gears positions
+UP
+DOWN
+*
+73            { Brake mode
+MANUAL
+LOW
+MED
+MAX
+*
+78            { Initial parameter choice for landing point
+AVAILABLE RUNWAY DISTANCE (LDA)
+INITIAL WEIGHT
+*
+211            { Initial parameter choice for landing charts
+AVAILABLE RUNWAY DISTANCE (LDA)
+*
+76            { Aerial phase type
+CALCULATED
+FIXED
+*
+79            { Landing optimization type
+POLYNOMIAL METHOD     
+FIRST PRINCIPLE METHOD 
+*
+77            { V/VS optimisation type
+FULL OPTIMIZATION
+POINT OPTIMIZATION
+*
+81
+Update mode selected
+Draw mode selected
+*
+84            { Obstacle reference
+BEGINNING OF TORA
+END OF TORA
+*
+515            { Obstacle reference (go-around)
+BEGINNING OF LDA
+END OF LDA
+*
+85            { Obstacle selection mode
+All obstacles
+Selection in splay angle
+*
+86
+Hidden
+Visible
+*
+87
+Downward triangle                    
+Circle                               
+Upward triangle                      
+Rightward triangle                   
+Leftward triangle                    
+Square                               
+Point                                
+*
+88
+White       
+Red         
+Green       
+Blue        
+Cyan        
+Magenta     
+Brown       
+Grey        
+Light blue  
+Light green 
+Light cyan  
+Light red  
+Light magenta
+Yellow      
+Light blue  
+Light white 
+*
+89
+Blue
+Red
+*
+90            { Ordinate list
+Time
+X
+Y
+Height
+Zp
+*
+95
+*
+110             { List of ordinates for TOD
+TOD OEI     
+1.15 TOD AEO
+V1 CAS
+V1 IAS
+VR CAS
+VR IAS
+VLOF0 CAS
+VLOF0 IAS
+VLOF1 CAS
+VLOF1 IAS
+V2 CAS
+V2 IAS
+V2/VS
+PMP
+*
+450             { List of ordinates for TOD and MOS regulation
+1.15 TOD AEO     
+VR CAS
+VR IAS
+VLOF0 CAS
+VLOF0 IAS
+V2 CAS
+V2 IAS
+V2/VS
+PMP
+*
+49              { List of ordinates for TOD Ferry flight
+1.15 TOD FF 
+VR CAS
+VR IAS
+VLOF0 CAS
+VLOF0 IAS
+VLOF1 CAS
+VLOF1 IAS
+V2 CAS
+V2 IAS
+V2/VS
+PMP
+*
+116             { List of ordinates for TOR
+TOR OEI     
+1.15 TOR AEO
+V1 CAS
+V1 IAS
+VR CAS
+VR IAS
+VLOF0 CAS
+VLOF0 IAS
+VLOF1 CAS
+VLOF1 IAS
+V2 CAS
+V2 IAS
+V2/VS
+PMP
+*
+50             { List of ordinates for TOR Ferry flight
+1.15 TOR FF
+VR CAS
+VR IAS
+VLOF0 CAS
+VLOF0 IAS
+VLOF1 CAS
+VLOF1 IAS
+V2 CAS
+V2 IAS
+V2/VS
+PMP
+*
+451            { List of ordinates for TOR and MOS regulation
+1.15 TOR AEO
+VR CAS
+VR IAS
+VLOF0 CAS
+VLOF0 IAS
+V2 CAS
+V2 IAS
+V2/VS
+PMP
+*
+93             { List of ordinates for ASD
+ASD OEI      
+ASD AEO        
+V1 CAS
+V1 IAS
+V2 CAS
+V2 IAS
+V2/VS
+BRK ENER AEO
+BRK ENER OEI
+PMP
+*
+452            { List of ordinates for ASD with MOS regulation
+ASD AEO      
+VSTOP CAS
+VSTOP IAS
+V2 CAS
+V2 IAS
+V2/VS
+BRK ENER AEO
+PMP
+*
+51             { List of ordinates for ASD Ferry flight
+ASD FF OEI      
+ASD FF AEO        
+VSTOP CAS
+VSTOP IAS
+V2 CAS
+V2 IAS
+V2/VS
+BRK ENER AEO
+BRK ENER OEI
+PMP
+*
+182             { List of ordinates for ASD when VMBE yes
+ASD OEI      
+ASD AEO        
+V1 CAS MAX E.
+V1 IAS MAX E.
+BRK ENER AEO
+BRK ENER OEI
+PMP
+*
+453            { List of ordinates for ASD when VMBE yes with MOS regulation
+ASD AEO      
+VSTOP CAS ME
+VSTOP IAS ME
+BRK ENER AEO
+PMP
+*
+98             { List of ordinates for FSG
+WEIGHT
+1ST SEG GRAD
+W REG 1ST SEG
+REGUL 1ST SEG
+V2/VS
+VLOF1 CAS
+VLOF1 IAS
+*
+454            { List of ordinates for FSG and MOS regulation
+WEIGHT
+1ST SEG GRAD
+W REG 1ST SEG
+REGUL 1ST SEG
+V2/VS
+VLOF0 CAS
+VLOF0 IAS
+*
+108             { List of ordinates for SSG 
+WEIGHT 
+2ND SEG GRAD
+W REG 2ND SEG
+REGUL 2ND SEG
+SPEED (CAS)
+SPEED (IAS)
+REG SP (CAS)
+REG SP (IAS)
+V2/VS
+*
+94             { List of ordinates for CTOF
+TOD OEI     
+1.15 TOD AEO
+TOR OEI   
+1.15 TOR AEO 
+ASD OEI     
+ASD AEO        
+BRK ENER AEO
+BRK ENER OEI
+V1 CAS
+V1 IAS
+VR CAS
+VR IAS
+VLOF0 CAS
+VLOF0 IAS
+VLOF1 CAS
+VLOF1 IAS
+V2 CAS
+V2 IAS
+V2/VS
+1ST SEG GRAD
+2ND SEG GRAD
+PMP
+*
+455            { List of ordinates for CTO with MOS regulation
+1.15 TOD AEO
+1.15 TOR AEO 
+ASD AEO        
+BRK ENER AEO
+VSTOP CAS
+VSTOP IAS
+VR CAS
+VR IAS
+VLOF0 CAS
+VLOF0 IAS
+V2 CAS
+V2 IAS
+V2/VS
+1ST SEG GRAD
+2ND SEG GRAD
+PMP
+*
+52             { List of ordinates for CTOF Ferry flight
+1.15 TOD FF
+1.15 TOR FF 
+ASD FF OEI     
+ASD FF AEO        
+BRK ENER AEO
+BRK ENER OEI
+VSTOP CAS
+VSTOP IAS
+VR CAS
+VR IAS
+VLOF0 CAS
+VLOF0 IAS
+VLOF1 CAS
+VLOF1 IAS
+V2 CAS
+V2 IAS
+V2/VS
+2ND SEG GRAD
+PMP
+*
+99             { List of ordinates for FTOF 
+WEIGHT
+FTG
+W REGUL FTG
+REGUL FTG
+SPEED (CAS)
+SPEED (IAS)
+REG SP (CAS)
+REG SP (IAS)
+*
+92             { List of ordinates for ACG 
+WEIGHT
+ACG
+W REGUL ACG
+REGUL ACG
+SPEED (CAS)
+SPEED (IAS)
+REG SP (CAS)
+REG SP (IAS)
+*
+100             { List of ordinates for LCG
+WEIGHT
+LCG
+W REGUL LCG
+REGUL LCG
+SPEED (CAS)
+SPEED (IAS)
+REG SP (CAS)
+REG SP (IAS)
+*
+101              { List of ordinates for  LD 
+LD
+REGUL COEF
+REQUIRED LD
+FACTORED LD
+VFA CAS
+VFA IAS          
+BRK ENER
+*
+91             { List of ordinates for ABD 
+AIRBORNE DIST
+GROUND DIST
+OLD
+LD FACTOR
+FACTORED OLD
+VAPP CAS
+VAPP IAS        
+BRK ENER
+VLS CAS
+VREF CAS
+DELTA VREF
+APPR COR
+DV WIND
+DV A/THR
+DV ICE ACCR
+DV CDL
+DV ADDITIONAL
+DV LIP
+ROW LDG DIST
+*
+111            { List of ordinates for TOFP
+BRAKE WEIGHT
+2ND SEG GRAD
+PMP
+V2/VS
+OPT. FTO
+V/VS OPT.FTO
+TIME
+X
+Y
+HEIGHT
+BANK ANGLE
+*
+112            { List of ordinates for TOFP for graphic output
+Y
+HEIGHT
+*
+96            { List of ordinates for ERFP
+TIME
+X
+ZP
+WEIGHT
+*
+97            { List of ordinates for ERFP for graphic output
+ZP
+WEIGHT
+*
+369            { List of ordinates for ERFP with Drift Down
+TIME
+X
+ZP
+*
+109            { List of ordinates for STALLING
+VS CAS
+*
+214            { List of ordinates for STALLING with centrage
+VS T/O CAS
+VS LD CAS
+*
+393            { List of ordinates for STALLING with CG discri code on (TO Context)
+VS CAS
+*
+394            { List of ordinates for STALLING with CG discri code on (LD Context)
+VS CAS
+*
+113            { List of ordinates for TOPT for code = 1,2 or3 
+MX WE
+SS WE
+LC V1MIN
+LC V1MAX
+LC V1BAL
+V2/VS
+V1/VR MIN
+V1/VR MAX
+V1 MIN
+V1 MAX
+* 
+114            { List of ordinates for TOPT for code = 2 or 3  
+TOD1 V1MIN
+TOD1 V1MAX
+TOR1 V1BAL
+TOR1 V1MIN
+TOR1 V1MAX
+ASD V1BAL
+ASD V1MIN
+ASD V1MAX
+N FSG
+*
+115            { List of ordinates for TOPT for code = 3 
+WE LIM V1/VRMX
+ASSO NUM
+WE LIM V1/VRBAL
+ASSO NUM
+*
+102            { List of ordinates for LOPT for weight option
+REGUL LD
+LD DRY RUN
+AC LD
+AE LD
+REQU LD
+APP CL GRAD
+CAT 2
+LD CL GRAD
+APP CL SPE
+LD CL SPE
+V AT THRESH
+VMCL
+BRAK ENER
+*
+103            { List of ordinates for LOPT for land dist option
+MX LD W
+W LIM LD
+W LIM ACG
+W LIM LCG
+W LIM TS
+W LIM BE
+REG LD MX LW
+REG LD DRY RUN
+AC LD MX LW
+AE DI MX LW
+AP CG MX LW
+C2 CG MX LW
+LD MX LW
+CT MX LW
+AP CS MX LW
+LD CS MX LW
+V THR MX LW
+VMCL
+LIM CODE
+*
+107            { List of ordinates for Oper. flight path from br. rel., any point 
+Time
+X
+Y
+Height/Ref0
+Zp (MSL)
+Gr dist
+Mach
+V CAS
+V IAS
+V TAS
+VZp
+Aero grad
+Pitch attitude
+Ang. of attack
+Bank angle
+Mag. heading
+Weight
+Lift
+Drag
+Tot thrust
+PMP
+*
+105            { List of ordinates for Noise flight path at take off,at approach 
+Time
+X
+Y
+Height/Ref0
+Zp (MSL)
+Mach
+PMP     
+Reduced N1
+Tot thrust
+Ang. of attack
+Pitch attitude
+Mag. heading
+Bank angle
+*
+117             { List of ordinates for VMC
+VMC
+*
+118             { List of ordinates for VMU
+V2/VS MIN
+V2 CAS
+V2 IAS
+*
+209            { List of ordinates for Calibration speed
+SP. IAS - CAS
+SPEED (IAS)
+*
+119            { List of ordinates for Octores
+CONFIGURATION       
+WEIGHT
+LP
+V2/VS
+V2 IAS
+V2 CAS
+V1/VR
+V1 IAS
+V1 CAS
+LIM CODE
+*
+120            { Type of approach climb
+NORMAL
+CATEGORY 2 APPROACH
+*
+121            { Gradient calculation option
+REGULATORY VALUES GIVEN
+NORMAL
+*
+122            { Gradient calculation mode
+WEIGHT AT BRAKE RELEASE
+SECOND SEGMENT GRADIENT
+*
+123            { Gradient calculation mode
+WEIGHT CALCULATION
+GRADIENT CALCULATION
+*
+124            { Printer options
+Printer
+File
+*
+134            { Lowest limitation gross level-off height option
+NORMAL
+VALUE
+*
+135            { Obstacle clearance
+NORMAL
+15 FEET
+35 FEET
+*
+136            { Screen height at end of runway
+NORMAL
+15 FEET
+35 FEET
+*
+137            { Runway pressure altitude type
+PRESSURE ALTITUDE
+QNH
+QFE
+*  
+138            { Airport destination type
+DESTINATION
+*                   
+139            { Runway length representation
+TODA - ASDA
+STOPWAY - CLEARWAY
+*
+150           { Reverser credit
+ALL REVERSERS INOPERATIVE
+ALL REVERSERS OPERATING
+ONE INSIDE  REVERSER INOPERATIVE
+ONE OUTSIDE REVERSER INOPERATIVE
+ONE INSIDE  REVERSER OPERATIVE  
+ONE OUTSIDE REVERSER OPERATIVE  
+*
+157            { Take-off optimization type
+POLYNOMIAL METHOD      
+FIRST PRINCIPLE METHOD 
+*
+158            { Take-off optimization type  (Full choice)
+POLYNOMIAL METHOD            (DELIV)
+FIRST PRINCIPLE METHOD       (DELIV)
+POLYNOMIAL                   (BASIC)       
+FIRST PRINCIPLE              (BASIC)
+MIXED                        (BASIC)
+NEURON + POLYNOMIAL          (BASIC)
+NEURON + FIRST PRINCIPLE     (BASIC)
+NEURON                       (BASIC)
+POLYNOMIAL + FIRST PRINCIPLE (BASIC)
+POLYNOMIAL + AFM CHECK       (TRACE)
+*
+160            { V2/VS optimisation type
+FULL RANGE
+LIMITED RANGE
+POINT VALUE
+*
+159            { V1/VR optimisation type
+FULL RANGE
+LIMITED RANGE
+POINT VALUE
+*
+155            { Parameter to optimize
+MAXIMUM WEIGHT
+MAXIMUM TEMPERATURE
+*
+156            { Level of outputs for take off optimisation
+VERY SHORT          
+SHORT
+FULL
+* 
+161            { Turn end type OPER.
+Distance X
+Height
+Pressure altitude
+Delta Pressure altitude
+Delta Heading
+Mag. heading
+Distance Y
+Time
+Delta Time
+Ground track distance
+*
+162            { Turn start type OPER.
+Distance X
+Height
+Pressure altitude
+Delta Pressure altitude
+Distance Y
+Time
+Mag. heading
+Ground track distance
+*
+165            { Turn end type AFM
+GROUND TRACK DISTANCE
+HEIGHT
+PRESSURE ALTITUDE
+RELATIVE PRESSURE ALTITUDE/RUNWAY
+DELTA HEADING
+*
+166            { Turn start type AFM
+DISTANCE(X)
+HEIGHT
+PRESSURE ALTITUDE
+RELATIVE PRESSURE ALTITUDE/RUNWAY
+*
+167            { Type of turn
+RADIUS OF TURN
+BANK ANGLE
+*
+177            { Weight units
+KILOGRAMMES
+POUNDS
+*
+172            { Length units
+METERS
+FEET
+NAUTICAL MILES
+*
+168            { Altitude units
+METERS
+FEET
+*
+174            { Temperature units
+CELSIUS
+FARENHEIT
+*
+173            { Pressure units
+HECTO-PASCAL
+INCHES HG
+*
+171            { Horizontal speed units
+METERS/SECOND
+KILOMETERS/HOUR
+KNOTS
+*
+176            { Vertica speed units
+METERS/SECOND
+FEET/MINUTE
+*
+175            { Time units
+SECONDS
+MINUTES
+HOURS
+*
+170            { Force units
+DECA NEWTON
+POUNDS
+*
+178            { V1 choice for chart
+V1 MIN
+V1 MAX
+V1 AVERAGE
+*
+179            { Type of V1
+V1/VR
+CAS
+IAS
+*
+180            { Type of V1 for Super user
+V1/VR
+CAS
+IAS
+V1 BAL.
+*
+181            { Type of V2
+V2/VS
+CAS
+IAS
+V2MIN
+*
+238            { Type of V2
+V2/VS
+CAS
+IAS
+*
+184             { Type of V (ACG)
+V/VS
+CAS
+IAS
+K.VS(landing) + DVC
+*
+380             { Type of V (FTO)
+V/VS
+CAS
+IAS
+Green Dot
+*
+183            { Type of VR
+MACH
+CAS
+IAS
+*
+83             { Liste No-Yes
+NO 
+YES
+*
+186             { Liste Yes-No
+YES
+NO
+*
+190                { Liste No
+NO
+*
+154            { While label not available   TBD
+NO
+YES
+*
+153            { While label not available   TBD
+NO
+YES
+* 
+185
+Not View
+View
+*
+189
+1
+2
+3
+*
+199            { Latitude of Ref 0 type list
+North
+South
+*
+200            { Longitude of Ref 0 type list                        
+West
+East
+*
+202
+Distance calculation
+Weight calculation
+*
+203
+W.TOD1
+W.TOD0
+*
+204
+W.TOR1
+W.TOR0
+*
+205
+W.ASD1
+W.ASD0
+*
+206
+W.RLD
+*
+207
+W.ABLD
+*
+213
+Height above ref. 0
+Pressure altitude above ref. 0
+Geometric altitude
+Pressure altitude
+Time from initial point
+Distance from initial point
+*
+215
+All obstacles
+Splay selection
+*
+216
+Calculation
+ASCII post-treatment
+Graphic post-treatment
+*
+217
+Default scale
+Users scale
+*
+191
+Empty triangle down
+Empty circle
+Empty triangle up
+Empty triangle right
+Empty triangle left
+*
+218
+No
+Increasing list
+Decreasing list
+Relative to TRef
+*
+321
+STANDARD
+ENTRY ANGLE
+*
+322
+0 degree
+90 degree
+180 degree
+180PAD
+Other
+*
+334         { Context of flight (air speed calibration):
+Takeoff
+Landing
+*
+516         { Context of flight (stalling speed)
+Takeoff
+Landing
+*
+343          { Off - On limitation
+Off
+On
+*
+360         { Smooth / grooved runway 
+SMOOTH
+GROOVED/PFC
+*
+355            { Aerial Phase Computation (in case of calculate from touch down)
+Regulatory Computation
+FTG Computation
+Contaminated Runways Computation
+Deduced from Integration
+Failure Computation
+Dry runway computation
+*
+382
+NORMAL
+CONSERVATIVE
+*
+405
+REGULATORY
+PHYSICAL
+*
+420
+Bank angle
+Heading
+Ground gradient
+Pitch attitude
+Angle attack
+Air gradient
+TAS
+CAS
+Mach
+Vz
+Vg
+Net thrust 1
+Net thrust 2
+Net thrust 3
+Net thrust 4
+Weight
+Zp
+Height
+Perc. PWS 1
+Perc. PWS 2
+Perc. PWS 3
+Perc. PWS 4
+CD
+CL
+LLPMPR SGA 1
+LLPMPR SGA 2
+LLPMPR SGA 3
+LLPMPR SGA 4
+*
+424         { Runway information type
+RUNWAY CONDITION
+REPORTED BRAKING ACTION
+*
+425         { Reported braking action
+6-DRY
+5-GOOD
+4-GOOD TO MEDIUM
+3-MEDIUM
+2-MEDIUM TO POOR
+1-POOR
+*
+428    { landing optimisation context 
+AT DISPATCH
+IN FLIGHT
+*
+430            { Engine rating type for From any point in flight, Approach for noise computation definition - A380 engine models
+Takeoff
+Go Around
+Max Continuous
+Climb
+Max Cruise
+Idle
+Fixed power management par.
+Constant THR
+Adapted thrust
+*
+431            { Engine rating type for Input data for Flight Segment definition - A380 engine models
+Same as previous
+Takeoff
+Go Around
+Max Continuous
+Climb
+Max Cruise
+Idle
+Fixed power management par.
+Constant THR
+Adapted thrust
+*
+432            { Thrust power type, last segment, for Approach for noise computation definition - A380 engine models
+Idle
+Fixed power management par.
+Constant THR
+Adapted thrust
+*
+434            { Type of profile definition, Takeoff for noise computation - A380 engine models
+Succession of segments
+Cutback at Climb rating
+Cutback at constant PMP
+Cutback at constant THR
+Cutback with a climb constraint
+NADP profile
+*
+436            { Thrust power type engine [1..4] Input data for Punctual equilibrium definition - A380 engine models
+Takeoff
+Go Around
+Max Continuous
+Climb
+Max Cruise
+Idle
+Windmilling
+Constant PMP (N1 or EPR or TPR)
+Constant THR
+Net Thrust given by user
+*
+437            { Thrust power type engine [1..4] Input data for Rate of climb flight paths calculation definition - A380 engine models
+Takeoff
+Go Around
+Max Continuous
+Climb
+Max Cruise
+Idle
+Windmilling
+Constant PMP (N1 or EPR or TPR)
+Constant THR
+*
+439            { Next thrust rating - Change condition - Fep 2870 - Only for A380 engine models
+Max Continuous
+Climb
+Max Cruise
+Flight Idle
+Fixed power management par.
+Constant THR
+Adapted thrust
+*
+433            { Engine rating type for noise approach flight segments - Fep 2870 - Only for A380 engine models 
+Same as previous
+Idle
+Fixed power management par.
+Constant THR
+Adapted thrust
+*
+438              { Max Thrust Rating options - Fep 2870 - Only for A380 engine models
+Take-off
+Go Around
+*
+389         { Runway type
+PAVED
+UNPAVED
+*
+390         { CBR option
+1
+*
+391         { Braking Action option
+1
+*
+392         { Disperse Dust list option
+NO
+YES
+*
+463         { Maxpedal beginning condition type
+Time from autobk application
+Distance before end of runway
+Time from touch down
+Percentage of RLD
+*
+489            { Table type for AECG 
+GENERIC TABLE
+RUNWAY-SPECIFIC TABLE
+* 
+492           { Go-around method for LOPT
+Check point gradient     
+Check average gradient   
+Check obstacle clearance 
+*
+493           { Speed optimization type , LOPT with go-around method = check obstacle clearance
+No
+KVs max
+Acc. distance
+*
+494           { Obstacle definition option , LOPT with go-around method = check obstacle clearance 
+Go-around obstacles
+Take-off obstacles
+*
+497           { Gross/Net saturation
+NO
+FIXED VALUE
+MIN OBST. CLEARANCE (MOC)
+*
+509           { Improved speed type for takeoff optimisation
+STANDARD
+IMPROVED
+*
+510           { Data selection between calculation data and runway data
+By calculation option
+By runway
+*
+511           { V2 type in runway context
+V2/VS
+V2 (TAS)
+*
