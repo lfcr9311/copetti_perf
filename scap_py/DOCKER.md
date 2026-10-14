@@ -129,6 +129,74 @@ A tela pede a senha uma vez e lembra dela naquele navegador.
 | Parar | `docker compose down` |
 | Trocar a senha | edite o `.env` e rode `docker compose up -d` |
 
+## Deploy automático pelo GitHub
+
+A cada `git push` na `master`, o GitHub Actions (`.github/workflows/deploy.yml`)
+entra no EC2 por SSH e roda `deploy/atualizar.sh`: baixa o commit novo, reconstrói
+a imagem e reinicia o container. O resultado aparece na aba **Actions** do GitHub.
+
+### Uma vez no EC2: passar para Docker
+
+```bash
+mv ~/fortran ~/fortran_antigo          # se existir a instalação antiga
+git clone https://github.com/lfcr9311/copetti_perf.git ~/fortran
+cd ~/fortran
+sudo bash deploy/migrar_docker.sh
+```
+
+O script instala o Docker, desliga o serviço `perf` e o nginx antigos (liberam a
+porta 80), cria o `.env` (reaproveita a senha de `/etc/perf.env`), sobe o programa
+e copia os CSVs de `~/fortran_antigo/scap_py/resultados` para o volume do Docker.
+
+### Uma vez no seu computador: chave do GitHub
+
+Uma chave só para o deploy (não use a `.pem` da AWS):
+
+```bash
+ssh-keygen -t ed25519 -f ~/.ssh/gh_deploy_perf -N "" -C github-actions-deploy
+```
+
+Coloque a chave pública no EC2. A linha abaixo já **limita a chave a rodar só o
+deploy** (ela não abre um terminal no servidor):
+
+```bash
+echo "command=\"bash ~/fortran/deploy/atualizar.sh\",no-port-forwarding,no-agent-forwarding,no-X11-forwarding,no-pty $(cat ~/.ssh/gh_deploy_perf.pub)" \
+  | ssh -i ~/CHAVE.pem ubuntu@IP-DO-EC2 'cat >> ~/.ssh/authorized_keys'
+```
+
+### Uma vez no GitHub: secrets
+
+Em **Settings → Secrets and variables → Actions → New repository secret**:
+
+| Secret | Valor |
+|---|---|
+| `EC2_HOST` | IP ou endereço público do EC2 |
+| `EC2_USER` | `ubuntu` |
+| `EC2_SSH_KEY` | conteúdo de `~/.ssh/gh_deploy_perf` (a chave **privada**, inteira) |
+| `EC2_KNOWN_HOSTS` | saída de `ssh-keyscan -t ed25519 IP-DO-EC2` |
+
+Com o `gh` instalado, dá para fazer pelo terminal:
+
+```bash
+R=lfcr9311/copetti_perf
+gh secret set EC2_HOST -R $R -b "IP-DO-EC2"
+gh secret set EC2_USER -R $R -b "ubuntu"
+gh secret set EC2_SSH_KEY -R $R < ~/.ssh/gh_deploy_perf
+ssh-keyscan -t ed25519 IP-DO-EC2 | gh secret set EC2_KNOWN_HOSTS -R $R
+```
+
+### Na AWS
+
+- O **Security Group** precisa aceitar a porta **22** de qualquer IP (os IPs do
+  GitHub mudam). A chave acima só consegue rodar o deploy.
+- Use um **Elastic IP**: sem ele, o IP muda quando a instância é parada e o
+  `EC2_HOST` / `EC2_KNOWN_HOSTS` deixam de valer.
+
+### Testar
+
+Aba **Actions → Deploy no EC2 → Run workflow**, ou faça um push na `master`.
+No servidor, o mesmo deploy roda à mão com `bash ~/fortran/deploy/atualizar.sh`.
+
 ## Sem Docker / outras opções
 
 - **Tela em outro lugar (ex. Vercel):** publique só a pasta `scap_py/web`. No

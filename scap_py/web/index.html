@@ -81,6 +81,7 @@
             <header class="block-head"><h2>Condições</h2></header>
             <div id="calc-conditions" class="cond-stack"></div>
             <div id="calc-flaps" class="cond flap-box"></div>
+            <div id="calc-cg" class="cond flap-box"></div>
           </section>
         </div>
 
@@ -234,8 +235,26 @@
         <button type="button" class="mini" id="rwe-cut-apply">Descontar</button>
       </div>
       <div class="rwe-grid" id="rwe-fields"></div>
-      <p class="rwe-note">Os <b>obstáculos</b> continuam os do cadastro. A alteração vale só para as consultas
-        desta pista neste navegador; o <code>airports_list.csv</code> não é alterado.</p>
+      <section class="rwe-obst" aria-labelledby="rwe-obst-title">
+        <div class="rwe-obst-head">
+          <h3 id="rwe-obst-title">Obstáculos <span class="badge" id="rwe-obst-count">0</span></h3>
+          <div class="quick-btns">
+            <button type="button" class="mini" id="rwe-obst-all">Considerar todos</button>
+            <button type="button" class="mini" id="rwe-obst-none">Nenhum</button>
+            <button type="button" class="mini" id="rwe-obst-add">+ Adicionar</button>
+          </div>
+        </div>
+        <p class="muted">Distância a partir do fim da TORA (m) e altura (ft). Desmarque para tirar do cálculo;
+          os novos (não mapeados no cadastro) podem ser removidos.</p>
+        <div class="table-wrap"><table class="obst-table">
+          <thead><tr><th scope="col">Considerar</th><th scope="col">Distância (m)</th><th scope="col">Altura (ft)</th>
+            <th scope="col">Origem</th><th scope="col"><span class="sr-only">Remover</span></th></tr></thead>
+          <tbody id="rwe-obst"></tbody>
+        </table></div>
+        <p class="rwe-note" id="rwe-obst-empty" hidden>Sem obstáculos. Use <b>+ Adicionar</b> para incluir um.</p>
+      </section>
+      <p class="rwe-note">A alteração (dados e obstáculos) vale só para as consultas desta pista neste navegador;
+        o <code>airports_list.csv</code> não é alterado.</p>
       <footer>
         <button type="button" class="btn outline" id="rwe-reset">Restaurar original</button>
         <span class="grow"></span>

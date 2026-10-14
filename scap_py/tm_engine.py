@@ -29,7 +29,7 @@ MAX_OBSTACLES = 15
 
 
 def data_file(aircraft, variant, runway, temperature, align,
-              wind=0.0, qnh=1013.25, flap=None):
+              wind=0.0, qnh=1013.25, flap=None, cg=0):
     """takeoff_data.dat: 'CHAVE: valor' na ordem exata dos READ do INPUT.FOR.
     Sem espacos nos valores (o READ e list-directed)."""
     fmt = lambda v: f"{v:g}"
@@ -41,7 +41,7 @@ def data_file(aircraft, variant, runway, temperature, align,
         ("POPT(12)", fmt(align[12])), ("POPT(13)", fmt(align[13])),
         ("POPT(14)", "0"),                      # pista seca
         ("POPT(24)", fmt(variant.mtow)),
-        ("POPT(30)", "0"),
+        ("POPT(30)", str(cg)),                  # limite dianteiro de CG
         ("CONF(3)", str(flap or 5)),            # 1 a 4; 5 = flap otimo
         ("XMET(1)", fmt(temperature)), ("XMET(2)", fmt(wind)),
         ("XMET(3)", "0"), ("XMET(5)", fmt(qnh)),
@@ -118,7 +118,7 @@ def compute(aircraft, variant, runway, temperature, align, slot=0,
     folder = prepare_workdir(variant, slot)
     (folder / "takeoff_data.dat").write_text(
         data_file(aircraft, variant, runway, temperature, align,
-                  *((cond.wind, cond.qnh, cond.flap) if cond else ())))
+                  *((cond.wind, cond.qnh, cond.flap, cond.cg) if cond else ())))
     result = folder / "takeoff_result.dat"
 
     if platform.system() == "Windows":

@@ -308,14 +308,15 @@ def alert_level(best, worst, ref):
 
 
 def process(path=DEFAULT_MALHA, cases=None, workers=None, on_progress=None,
-            log=print, refs=None, flaps=None):
+            log=print, refs=None, flaps=None, cgs=None):
     """Calcula e grava a malha. cases: combinacoes (temperatura,
     Conditions); padrao -10 a 45 C sem vento, QNH 1013.25. Devolve a lista de
     resumos por par (IATA, Eqp): dict com icao, aircraft, mtow, rwy, temp,
     cond, flap, limit, obs e o alerta (worst_*, ref, margin, limit_temp,
     alert). refs: {nome da aeronave: peso de referencia em kg}; sem valor,
     a referencia e o peso estrutural. flaps: {nome da aeronave: codigo do
-    flap fixo} (ver Conditions.flap); sem valor, flap otimo."""
+    flap fixo} (ver Conditions.flap); sem valor, flap otimo. cgs: {nome da
+    aeronave: limite dianteiro de CG (POPT 30)}; sem valor, Standard."""
     path = Path(path)
     cases = cases or [(t, scap_engine.CALM) for t in range(-10, 46)]
     workers = workers or scap_engine.default_workers()
@@ -361,8 +362,9 @@ def process(path=DEFAULT_MALHA, cases=None, workers=None, on_progress=None,
             progress = (lambda d, t, n=n: on_progress(n, len(keys), d, t)) \
                 if on_progress else None
             flap = (flaps or {}).get(aircraft.name)
-            ac_cases = [(t, dataclasses.replace(c, flap=flap))
-                        for t, c in cases] if flap is not None else cases
+            cg = (cgs or {}).get(aircraft.name, 0)
+            ac_cases = [(t, dataclasses.replace(c, flap=flap, cg=cg))
+                        for t, c in cases] if flap is not None or cg else cases
             an = Analysis(aircraft, variant, runways, ac_cases, toalign,
                           workers, progress)
             info["model"] = aircraft.name

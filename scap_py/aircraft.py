@@ -28,6 +28,16 @@ class Variant:
         return self.label or self.engtyp
 
 
+# POPT(30): limite dianteiro de CG. A base de cada aeronave so aceita alguns
+# (testado no motor: as outras opcoes dao erro). No A320/A321 a opcao 1 e o
+# Extended FWD (limite mais dianteiro: diminui o MTOW no A320).
+CG_STANDARD = ((0, "Standard"),)
+CG_EMBRAER = ((0, "Standard"), (1, "Alternate 1"))
+CG_A320 = ((0, "Standard"), (1, "Extended FWD"))
+CG_A330NEO = ((0, "Standard"), (1, "Alternate"), (2, "2nd Alternate"),
+              (4, "3rd Alternate"))
+
+
 @dataclass(frozen=True)
 class Aircraft:
     name: str            # nome mostrado na tela
@@ -35,6 +45,7 @@ class Aircraft:
     engine: str          # motor de calculo: octopus, ttam (ATR), etm170 (E1)
     variants: tuple
     align: str = ""      # ACFT no toalign_list.csv (POPT 12/13)
+    cg: tuple = CG_STANDARD   # limites dianteiros de CG aceitos (POPT 30)
 
     @property
     def supported(self):
@@ -49,11 +60,11 @@ AIRCRAFT = (
                 "scap_A320-1A26SHARP.in.example", label="LEAP-1A26 · Sharp"),
         Variant("1A29SHARP", "AE253B01", "XE253B01.PRE", "EASA",
                 "scap_A320-1A29SHARP.in.example", label="LEAP-1A29 · Sharp"),
-    ), align="AIRBUS 320"),
+    ), align="AIRBUS 320", cg=CG_A320),
     Aircraft("A321neo", "AIRBUS321", "octopus", (
         Variant("1A32-NX", "AC251B01", "XC251B01.PRE", "EASA",
                 "scap_A321-1A32-NX.in.example", label="LEAP-1A32"),
-    ), align="AIRBUS 321"),
+    ), align="AIRBUS 321", cg=CG_A320),
     Aircraft("A321F", "AIRBUSF321", "octopus", (
         Variant("CFM_56_5B3_3", "AC211K01", "XC211K01.pre", "EASA",
                 "scap_A321F-CFM_56_5B3_3.in.example", label="CFM56-5B3"),
@@ -67,7 +78,7 @@ AIRCRAFT = (
     Aircraft("A330neo", "AIRBUS330NEO", "octopus", (
         Variant("TRENT7000-STEP3", "AB941C02", "XB941C02.pre", "FAR",
                 "scap_A330NEO-TRENT7000-STEP3.in.example", label="RR Trent 7000 · Step 3"),
-    ), align="AIRBUS 330 NEO"),
+    ), align="AIRBUS 330 NEO", cg=CG_A330NEO),
     # ACMDBI do ATR conforme o INPUT.FOR (PW127M_M/PW127F_M -> MUE6DC3A)
     Aircraft("ATR 72-600", "ATR72-600", "ttam", (
         Variant("PW127M_M", "MUE6DC3A.PDF", "", "FAR", rating="BOOSTON+RTOON",
@@ -85,11 +96,11 @@ AIRCRAFT = (
         Variant("CF34-10E5A1", "191-05678-280.DAT;191-05679-256.DAT;"
                 "CAFM-01335.DAT;191-05679-265.DAT", "", "ANAC",
                 rating="TO-1", mtow=50790),
-    ), align="EMBRAER 195"),
+    ), align="EMBRAER 195", cg=CG_EMBRAER),
     Aircraft("E195-E2", "E195-E2", "takeoff_module", (
         Variant("PW1923G-A", "CAFM-ADB-069.pdm;CAFM-EDB-015.pdm", "", "ANAC",
                 rating="TO-1", mtow=62000),
-    ), align="E195-E2"),
+    ), align="E195-E2", cg=CG_EMBRAER),
 )
 
 

@@ -1,0 +1,39 @@
+# Deploy automatico: a cada push na master, entra no EC2 por SSH e roda
+# deploy/atualizar.sh (git pull + docker compose up --build).
+# Configuracao (secrets, chave SSH, primeira instalacao): scap_py/DOCKER.md,
+# secao "Deploy automatico pelo GitHub".
+name: Deploy no EC2
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:          # botao "Run workflow" na aba Actions
+
+# um deploy por vez; um push durante o deploy espera o anterior terminar
+concurrency:
+  group: deploy-ec2
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Atualizar o servidor
+        env:
+          EC2_HOST: ${{ secrets.EC2_HOST }}
+          EC2_USER: ${{ secrets.EC2_USER }}
+          EC2_SSH_KEY: ${{ secrets.EC2_SSH_KEY }}
+          EC2_KNOWN_HOSTS: ${{ secrets.EC2_KNOWN_HOSTS }}
+        run: |
+          for v in EC2_HOST EC2_USER EC2_SSH_KEY EC2_KNOWN_HOSTS; do
+            [ -n "${!v}" ] || { echo "::error::Falta o secret $v (Settings > Secrets and variables > Actions)"; exit 1; }
+          done
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$EC2_SSH_KEY" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$EC2_KNOWN_HOSTS" > ~/.ssh/known_hosts
+          ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=yes \
+              -o ServerAliveInterval=30 -o ConnectTimeout=20 \
+              "$EC2_USER@$EC2_HOST" \
+              "DEPLOY_BRANCH='${{ github.ref_name }}' bash ~/fortran/deploy/atualizar.sh"

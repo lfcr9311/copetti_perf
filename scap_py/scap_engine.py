@@ -48,11 +48,14 @@ class Conditions:
     flap: None = otimo (o motor escolhe o que da maior MTOW); senao o flap
     fixo no codigo de cada motor: Airbus o codigo de FLAP_NAMES, ex. 1810 =
     CONF 1+F (CONF 1 = 1, CONF 2); Embraer 1 a 4 (CONF 3); ATR 15 (CONF 3;
-    a base do ATR so tem o FLAP 15)."""
+    a base do ATR so tem o FLAP 15).
+    cg: limite dianteiro de CG (POPT 30): 0 = Standard, 1 = Alternate...
+    (opcoes de cada aeronave em Aircraft.cg)."""
     wind: float = 0.0
     crosswind: float = 0.0
     qnh: float = 1013.25
     flap: "int | None" = None
+    cg: int = 0
 
     def describe(self):
         parts = []
@@ -207,6 +210,7 @@ def build_input(example_text, aircraft, variant, runway=None,
                 temperature=None, align=None, cond=None):
     """Copia o scap.in.example trocando o TINPA (ACMDBI, MISCLA, CERTIF) e,
     se informados, a temperatura (XMET 1), o vento e o QNH (XMET 2, 3, 5),
+    o flap (CONF 1/2), o limite de CG (POPT 30),
     a pista (RWYD), os obstaculos (OBSD) e o alinhamento (POPT 12/13). O
     resto fica como no exemplo."""
     lines = example_text.splitlines(keepends=True)
@@ -219,6 +223,8 @@ def build_input(example_text, aircraft, variant, runway=None,
                                    4: 1, 5: cond.qnh})
         if cond.flap is not None:       # configuracao escolhida
             set_values(lines, "CONF", {1: 1, 2: cond.flap})
+        if cond.cg:                     # limite dianteiro de CG
+            set_values(lines, "POPT", {30: cond.cg})
     if runway is not None:
         wet = read_value(example_text, "POPT", 14) == 1
         replace_block(lines, "RWYD", rwyd_values(runway, aircraft.actype, wet))

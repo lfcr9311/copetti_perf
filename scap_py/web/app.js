@@ -275,6 +275,7 @@ const state = {
   runways: [],                  // [{icao, rwy, edit?}] edit = dados alterados (RWYD 1/3/4/5/6/8/11)
   airports: {},                 // cache de /api/airport/<ICAO>
   flaps: {},                    // {nome da aeronave: [null (otimo) e/ou codigos]}; ausente = so o otimo
+  cgs: {},                      // {nome da aeronave: [codigos do POPT 30]}; ausente = so Standard (0)
   result: null, view: "summary", chart: null, rtow: {}, sort: { key: "plane", dir: 1 },
 };
 const planeId = (i, j) => `${i}:${j}`;
@@ -307,13 +308,16 @@ function runwaysText() {
 }
 function snapshot() {
   return { planes: [...state.planes].map(planeLabel), runways: state.runways.map((r) => ({ ...r })), conds: calcForm.getState(),
-    ...(Object.keys(state.flaps).length ? { flaps: { ...state.flaps } } : {}) };
+    ...(Object.keys(state.flaps).length ? { flaps: { ...state.flaps } } : {}),
+    ...(Object.keys(state.cgs).length ? { cgs: { ...state.cgs } } : {}) };
 }
 function restore(snap, { quiet } = {}) {
   if (!snap) return;
   state.planes = new Set((snap.planes || []).map(planeIdOf).filter(Boolean));
   state.runways = (snap.runways || []).filter((r) => r && r.icao && r.rwy);
   state.flaps = Object.fromEntries(Object.entries(snap.flaps || {})        // antes: um codigo so
+    .map(([k, v]) => [k, Array.isArray(v) ? v : [v]]));
+  state.cgs = Object.fromEntries(Object.entries(snap.cgs || {})          // antes: um codigo so
     .map(([k, v]) => [k, Array.isArray(v) ? v : [v]]));
   if (snap.conds) calcForm.setState(snap.conds);
   renderPlanes(); renderSelectedRunways(); renderAirportRunways(); updateCalcButton();
@@ -390,6 +394,7 @@ function renderPlanes() {
   calcForm.setCrossNote(n && chosen.every((a) => a.crosswind) ? "O través entra no cálculo dos Airbus selecionados."
     : "O través só entra no cálculo dos Airbus; nas outras aeronaves é ignorado.");
   renderFlaps();
+  renderCg();
 }
 
 /* Flap por modelo: "Ótimo" (o motor escolhe o de maior MTOW) ou fixo. */
@@ -428,6 +433,35 @@ function renderFlaps() {
     h("div", { class: "cond-head" }, h("span", {}, "Flap",
       h("small", { text: "Marque um ou mais. Ótimo = o motor escolhe o de maior MTOW" }))),
     h("div", { class: "cond-body" }, rows.length ? rows : h("p", { class: "muted", text: "Marque uma aeronave para escolher o flap." })));
+}
+/* Limite dianteiro de CG por modelo (POPT 30), um ou mais, como os flaps.
+ * So as opcoes que a base da aeronave aceita; Standard = o padrao do AFM. */
+const cgsOf = (a) => state.cgs[a.name] || [0];
+function toggleCg(a, code) {
+  const cur = cgsOf(a);
+  const next = cur.includes(code) ? cur.filter((c) => c !== code) : [...cur, code];
+  const ordered = a.cg.map((c) => c.code).filter((c) => next.includes(c));
+  if (!ordered.length || (ordered.length === 1 && ordered[0] === 0)) delete state.cgs[a.name];
+  else state.cgs[a.name] = ordered;
+  renderCg(); updateCalcButton();
+}
+function renderCg() {
+  const rows = chosenModels().map((a) => {
+    if (a.cg.length < 2) {
+      return h("div", { class: "flap-row" }, h("b", { text: a.name }),
+        h("span", { class: "muted", text: `${a.cg[0].label} (único na base)` }));
+    }
+    return h("div", { class: "flap-row" }, h("b", { text: a.name }),
+      h("div", { class: "seg multi", role: "group", "aria-label": `Limite de CG ${a.name}` }, a.cg.map((c) => h("button", {
+        type: "button", text: c.label.replace(" Alternate", " Alt."), "aria-pressed": cgsOf(a).includes(c.code),
+        title: `Limite dianteiro de CG: ${c.label} (POPT 30 = ${c.code})`,
+        onclick: () => toggleCg(a, c.code),
+      }))));
+  });
+  $("#calc-cg").replaceChildren(
+    h("div", { class: "cond-head" }, h("span", {}, "Limite de CG",
+      h("small", { text: "Limite dianteiro (POPT 30). Marque um ou mais" }))),
+    h("div", { class: "cond-body" }, rows.length ? rows : h("p", { class: "muted", text: "Marque uma aeronave para escolher o limite de CG." })));
 }
 $("#planes-clear").addEventListener("click", () => { state.planes.clear(); renderPlanes(); updateCalcButton(); });
 
@@ -534,7 +568,7 @@ function renderSelectedRunways() {
     h("b", { text: icao }),
     ...rws.map((r) => h("span", { class: `tag${r.edit ? " edited" : ""}`, title: r.edit ? editText(r.edit) : null }, r.rwy,
       r.edit ? h("small", { class: "flag", text: "editada" }) : null,
-      h("button", { type: "button", class: "edit", title: `Editar dados de ${runwayId(r)} (pista parcialmente fechada etc.)`,
+      h("button", { type: "button", class: "edit", title: `Editar dados e obstáculos de ${runwayId(r)}`,
         "aria-label": `Editar ${runwayId(r)}`, text: "✎", onclick: () => openRunwayEditor(r) }),
       h("button", { type: "button", title: `Tirar ${runwayId(r)}`, "aria-label": `Tirar ${runwayId(r)}`, text: "×",
         onclick: () => { toggleRunway(r.icao, r.rwy); refreshRunways(); } }))))));
@@ -545,8 +579,8 @@ function renderSelectedRunways() {
 }
 
 // ------------------------------------------------------------------ edicao dos dados da pista
-/* Altera so o que vai para o calculo (RWYD 1, 3, 4, 5, 6, 8 e 11); os
- * obstaculos ficam os do cadastro. Limites iguais aos de app.py. */
+/* Altera so o que vai para o calculo (RWYD 1, 3, 4, 5, 6, 8 e 11) e os
+ * obstaculos (OBSD). Limites iguais aos de app.py. */
 const RW_FIELDS = [
   { key: "elev", label: "RUNWAY ELEVATION", rwyd: "RWYD1", unit: "ft", min: -2000, max: 16000, step: 1 },
   { key: "tora", label: "TORA", rwyd: "RWYD3", unit: "m", min: 100, max: 6000, step: 1 },
@@ -560,10 +594,28 @@ const surfaceOf = (s) => (String(s).toUpperCase().includes("GROOVED") ? "grooved
 const surfaceText = (s) => (s === "grooved" ? "Grooved" : "Normal");
 const fieldText = (f, v) => (f.key === "surface" ? surfaceText(v) : `${f.key === "slope" ? num(v) : kg(v)} ${f.unit}`);
 function editText(edit) {
-  return "Editada: " + RW_FIELDS.filter((f) => f.key in edit).map((f) => `${f.label} ${fieldText(f, edit[f.key])}`).join(" · ");
+  const parts = RW_FIELDS.filter((f) => f.key in edit).map((f) => `${f.label} ${fieldText(f, edit[f.key])}`);
+  if (edit.obstacles) parts.push(obstText(edit.obstacles));
+  return "Editada: " + parts.join(" · ");
+}
+
+/* Obstaculos da pista no editor: { dist (m, do fim da TORA), height (ft),
+ * on (entra no calculo), cad (indice no cadastro; null = novo) }. Vai para
+ * app.py em override.obstacles; os desmarcados ficam de fora. */
+const MAX_OBST = 15;   // takeoff_data.dat: OBSD(3) ate OBSD(46)
+const OBST_LIMITS = { dist: { min: 0, max: 20000, step: 1 }, height: { min: 0, max: 5000, step: 1 } };
+const obstFromCad = (list) => list.map(([dist, height], i) => ({ dist, height, on: true, cad: i }));
+const obstOn = (list) => list.filter((o) => o.on).length;
+function obstText(list) {
+  const on = obstOn(list), added = list.filter((o) => o.cad == null).length;
+  return `obstáculos: ${on} de ${list.length} considerados${added ? ` (${added} novo${added > 1 ? "s" : ""})` : ""}`;
+}
+function obstChanged(list, cad) {
+  return list.length !== cad.length || list.some((o, i) => !o.on || o.cad !== i
+    || o.dist !== cad[i][0] || o.height !== cad[i][1]);
 }
 const editor = $("#rw-editor");
-let editing = null;   // { item, orig }
+let editing = null;   // { item, orig, obst }
 for (const b of editor.querySelectorAll('button[value="cancel"]')) b.formNoValidate = true;
 
 async function openRunwayEditor(item) {
@@ -572,7 +624,8 @@ async function openRunwayEditor(item) {
   const rw = a.runways.find((r) => r.rwy === item.rwy);
   if (!rw) return;
   const orig = { ...rw, surface: surfaceOf(rw.surface) };
-  editing = { item, orig };
+  const obst = (item.edit?.obstacles || obstFromCad(rw.obstacles)).map((o) => ({ ...o }));
+  editing = { item, orig, obst };
   $("#rwe-title").textContent = `Editar pista ${item.icao} ${item.rwy}`;
   $("#rwe-sub").textContent = `${a.name} · ${rw.obstacles.length ? `${rw.obstacles.length} obstáculo(s) do cadastro` : "sem obstáculos no cadastro"}`;
   $("#rwe-cut").value = "";
@@ -588,6 +641,7 @@ async function openRunwayEditor(item) {
       h("div", { class: "row" }, input, f.unit ? h("span", { class: "unit", text: f.unit }) : null),
       h("small", { text: `Cadastro: ${fieldText(f, orig[f.key])}` }));
   }));
+  renderObstacles();
   markChanged();
   editor.showModal();
   $("#rwe-tora").focus();
@@ -606,6 +660,49 @@ function markChanged() {
     $(`.rwe-field[data-key="${f.key}"]`).classList.toggle("changed", v[f.key] != null && v[f.key] !== editing.orig[f.key]);
   }
 }
+
+function renderObstacles() {
+  const { obst, orig } = editing;
+  const cad = orig.obstacles;
+  const full = obstOn(obst) >= MAX_OBST;
+  const numInput = (o, key, n) => {
+    const changed = o.cad != null && o[key] !== cad[o.cad][key === "dist" ? 0 : 1];
+    const input = h("input", { type: "number", ...OBST_LIMITS[key], required: true, inputmode: "decimal",
+      class: changed ? "changed" : null, "aria-label": `${key === "dist" ? "Distância" : "Altura"} do obstáculo ${n}`,
+      title: o.cad != null ? `Cadastro: ${kg(cad[o.cad][key === "dist" ? 0 : 1])} ${key === "dist" ? "m" : "ft"}` : null });
+    input.value = o[key] ?? "";
+    input.addEventListener("input", () => {
+      o[key] = input.value === "" ? null : Number(input.value);
+      input.classList.toggle("changed", o.cad != null && o[key] !== cad[o.cad][key === "dist" ? 0 : 1]);
+    });
+    return input;
+  };
+  $("#rwe-obst").replaceChildren(...obst.map((o, i) => h("tr", { class: `${o.on ? "" : "off"}${o.cad == null ? " new" : ""}`.trim() || null },
+    h("td", {}, h("input", { type: "checkbox", checked: o.on, "aria-label": `Considerar o obstáculo ${i + 1}`,
+      disabled: !o.on && full, title: !o.on && full ? `Máximo de ${MAX_OBST} obstáculos no cálculo` : null,
+      onchange: (e) => { o.on = e.target.checked; renderObstacles(); } })),
+    h("td", {}, numInput(o, "dist", i + 1)),
+    h("td", {}, numInput(o, "height", i + 1)),
+    h("td", {}, h("span", { class: `src${o.cad == null ? " new" : ""}`, text: o.cad == null ? "Novo" : "Cadastro" })),
+    h("td", {}, o.cad == null ? h("button", { type: "button", class: "del", text: "×", title: "Remover este obstáculo",
+      "aria-label": `Remover o obstáculo ${i + 1}`, onclick: () => { obst.splice(i, 1); renderObstacles(); } }) : null))));
+  const count = $("#rwe-obst-count");
+  count.textContent = obst.length ? `${obstOn(obst)}/${obst.length}` : "0";
+  count.toggleAttribute("data-zero", !obstOn(obst));
+  $("#rwe-obst-empty").hidden = obst.length > 0;
+  $(".obst-table").closest(".table-wrap").hidden = !obst.length;
+  $("#rwe-obst-add").disabled = full;
+  $("#rwe-obst-add").title = full ? `Máximo de ${MAX_OBST} obstáculos no cálculo` : "Incluir um obstáculo que não está no cadastro";
+  $("#rwe-obst-all").disabled = obst.every((o) => o.on) || obst.length > MAX_OBST;
+  $("#rwe-obst-none").disabled = !obstOn(obst);
+}
+$("#rwe-obst-add").addEventListener("click", () => {
+  editing.obst.push({ dist: null, height: null, on: true, cad: null });
+  renderObstacles();
+  $("#rwe-obst tr:last-child input[type=number]")?.focus();
+});
+$("#rwe-obst-all").addEventListener("click", () => { for (const o of editing.obst) o.on = true; renderObstacles(); });
+$("#rwe-obst-none").addEventListener("click", () => { for (const o of editing.obst) o.on = false; renderObstacles(); });
 function setDistances(cut) {
   /* Fim da pista fechado: TORA perde o trecho; stopway e clearway ficam alem
    * do trecho fechado, entao ASDA e TODA passam a ser iguais a nova TORA. */
@@ -622,12 +719,15 @@ $("#rwe-cut-apply").addEventListener("click", () => {
 $("#rwe-cut").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#rwe-cut-apply").click(); } });
 $("#rwe-reset").addEventListener("click", () => {
   for (const f of RW_FIELDS) $(`#rwe-${f.key}`).value = editing.orig[f.key];
+  editing.obst = obstFromCad(editing.orig.obstacles);
+  renderObstacles();
   markChanged();
 });
 editor.addEventListener("close", () => {
   if (editor.returnValue === "apply" && editing) {
     const v = editorValues(), edit = {};
     for (const f of RW_FIELDS) if (v[f.key] != null && v[f.key] !== editing.orig[f.key]) edit[f.key] = v[f.key];
+    if (obstChanged(editing.obst, editing.orig.obstacles)) edit.obstacles = editing.obst;
     const { item } = editing;
     state.runways = state.runways.map((r) => (r.icao === item.icao && r.rwy === item.rwy
       ? (Object.keys(edit).length ? { icao: r.icao, rwy: r.rwy, edit } : { icao: r.icao, rwy: r.rwy }) : r));
@@ -641,9 +741,13 @@ editor.addEventListener("close", () => {
 const calcBtn = $("#calc-btn");
 const calcForm = conditionsForm($("#calc-conditions"), { onEnter: () => runCalc(), onChange: () => updateCalcButton() });
 const busy = () => calcBtn.dataset.busy === "1";
-/** Aeronaves x flaps: cada motor marcado conta uma vez por flap escolhido. */
+/** Aeronaves x flaps x CG: cada motor marcado conta uma vez por flap e por
+ * limite de CG escolhidos. */
 function planeUnits() {
-  return [...state.planes].reduce((sum, id) => sum + flapsOf(state.meta.aircraft[id.split(":")[0]]).length, 0);
+  return [...state.planes].reduce((sum, id) => {
+    const a = state.meta.aircraft[id.split(":")[0]];
+    return sum + flapsOf(a).length * cgsOf(a).length;
+  }, 0);
 }
 function totalCount() {
   const n = calcForm.count();
@@ -661,7 +765,7 @@ function updateCalcButton() {
     info.classList.add("warn");
     calcBtn.textContent = "Calcular";
   } else {
-    const planes = u === p ? `${p} aeronave${p > 1 ? "s" : ""}` : `${u} aeronave${u > 1 ? "s" : ""}/flap${u > 1 ? "s" : ""}`;
+    const planes = u === p ? `${p} aeronave${p > 1 ? "s" : ""}` : `${u} aeronave${u > 1 ? "s" : ""}/flap${u > 1 ? "s" : ""}/CG`;
     info.replaceChildren(`${planes} × ${r} pista${r > 1 ? "s" : ""} × ${nfKg.format(n)} combinaç${n > 1 ? "ões" : "ão"} = `,
       h("b", { text: `${nfKg.format(total)} cálculo${total > 1 ? "s" : ""}` }));
     calcBtn.textContent = busy() ? "Calculando…" : `Calcular ${nfKg.format(total)}`;
@@ -693,6 +797,7 @@ async function runCalc() {
     selection: [...state.planes].map((id) => { const [i, j] = id.split(":"); return { aircraft: +i, variant: +j }; }),
     runways: state.runways.map((r) => ({ icao: r.icao, rwy: r.rwy, override: r.edit || null })), ...calcForm.spec(),
     flaps: Object.fromEntries(chosenModels().filter((a) => a.name in state.flaps).map((a) => [a.name, state.flaps[a.name]])),
+    cg: Object.fromEntries(chosenModels().filter((a) => a.name in state.cgs).map((a) => [a.name, state.cgs[a.name]])),
   };
   addRecent();
   calcBtn.dataset.busy = "1"; updateCalcButton();
@@ -791,9 +896,14 @@ function renderResult() {
     ...(p.some((x) => x.flap) ? [tag("Flaps", Object.entries(p.filter((x) => x.flap).reduce((acc, x) => {
       (acc[x.aircraft] ||= new Set()).add(x.flap.replace("Flap ótimo", "ótimo")); return acc;
     }, {})).map(([ac, s]) => `${ac} ${[...s].join(", ")}`).join(" · "))] : []),
+    ...(p.some((x) => x.cg) ? [tag("Limite de CG", Object.entries(p.filter((x) => x.cg).reduce((acc, x) => {
+      (acc[x.aircraft] ||= new Set()).add(x.cg.replace(/^CG /, "")); return acc;
+    }, {})).map(([ac, s]) => `${ac} ${[...s].join(", ")}`).join(" · "))] : []),
     ...rw.filter((r) => r.edited).map((r) => h("span", { class: "edited" }, `${r.icao} ${r.rwy} editada: `,
       h("b", { text: `TORA ${kg(r.data.tora)} · ASDA ${kg(r.data.asda)} · TODA ${kg(r.data.toda)} m · elev. ${kg(r.data.elev)} ft · `
-        + `slope ${num(r.data.slope)}% · ${surfaceText(surfaceOf(r.data.surface))} · largura ${kg(r.data.width)} m` }))),
+        + `slope ${num(r.data.slope)}% · ${surfaceText(surfaceOf(r.data.surface))} · largura ${kg(r.data.width)} m · `
+        + (r.data.obstacles.length ? `${r.data.obstacles.length} obstáculo(s): `
+          + r.data.obstacles.map(([d, ht]) => `${kg(d)} m/${kg(ht)} ft`).join(", ") : "sem obstáculos") }))),
     ...describeConditions(res).split(" · ").map((part) => h("span", { text: part })),
     tag("Cálculos", nfKg.format(res.rows.length)));
   $("#r-csv").href = fileUrl(res.csv);
@@ -1301,6 +1411,7 @@ let malhaJob = null, malhaSort = { key: "alert", dir: 1 }, malhaFilter = "all";
  * Fica guardado no navegador. */
 STORE.refs = "perf.refs";
 STORE.malhaFlaps = "perf.malhaFlaps";
+STORE.malhaCg = "perf.malhaCg";
 function renderRefs() {
   const saved = load(STORE.refs, {});
   $("#malha-refs").replaceChildren(...state.meta.aircraft.map((a) => {
@@ -1324,10 +1435,21 @@ function renderRefs() {
         save(STORE.malhaFlaps, flaps);
       });
     }
+    let cg = null;
+    if (a.cg.length > 1) {
+      cg = h("select", { "aria-label": `Limite de CG ${a.name}`, title: "Limite dianteiro de CG (POPT 30)" },
+        a.cg.map((c) => h("option", { value: c.code, text: `CG ${c.label}` })));
+      cg.value = load(STORE.malhaCg, {})[a.name] ?? 0;
+      cg.addEventListener("change", () => {
+        const cgs = load(STORE.malhaCg, {});
+        if (cg.value === "0") delete cgs[a.name]; else cgs[a.name] = Number(cg.value);
+        save(STORE.malhaCg, cgs);
+      });
+    }
     return h("div", { class: "ref-item" }, h("label", { text: a.name, for: `ref-${a.id}` }),
       h("div", { class: "row" }, input, h("small", { text: "kg" })),
       h("small", { text: a.structural ? `estrutural ${kg(a.structural)} kg` : "estrutural do motor" }),
-      flap);
+      flap, cg);
   }));
 }
 malhaBtn.addEventListener("click", runMalha);
@@ -1336,7 +1458,7 @@ $("#malha-open").addEventListener("click", () => api("/api/open", { job: malhaJo
 async function runMalha() {
   if (malhaBtn.disabled) return;
   if (malhaForm.count() == null) { alert("Confira os valores das faixas."); return; }
-  const body = { path: $("#malha-path").value, refs: load(STORE.refs, {}), flaps: load(STORE.malhaFlaps, {}), ...malhaForm.spec() };
+  const body = { path: $("#malha-path").value, refs: load(STORE.refs, {}), flaps: load(STORE.malhaFlaps, {}), cg: load(STORE.malhaCg, {}), ...malhaForm.spec() };
   if (state.meta.server) {                 // servidor: a malha vai pelo navegador
     const file = $("#malha-file").files[0];
     if (!file) { alert("Escolha o arquivo da malha (.csv)."); return; }

@@ -33,7 +33,7 @@ from urllib.parse import parse_qs, unquote, urlparse
 import malha
 import scap_engine
 from aircraft import AIRCRAFT, flap_options
-from airports import align_values, load_airports, load_toalign
+from airports import MAX_OBSTACLES, align_values, load_airports, load_toalign
 from batch import COLUMNS, condition_columns, result_row, temperatures
 
 HERE = Path(__file__).resolve().parent
@@ -110,6 +110,7 @@ def meta():
                          "structural": structural,
                          "flaps": [{"code": c, "label": n}
                                    for c, n in flap_options(ac)],
+                         "cg": [{"code": c, "label": n} for c, n in ac.cg],
                          "speeds": ac.engine != "takeoff_module",
                          "crosswind": ac.engine == "octopus",
                          "variants": variants})
@@ -216,16 +217,51 @@ def pick_flaps(body, multi=False):
     return out
 
 
-def flap_units(planes, flaps):
-    """[(aircraft, variant, flap, nome do flap)] para cada aeronave e cada
-    flap escolhido; nome vazio = so o otimo (sem sufixo na chave)."""
+def pick_cg(body, multi=False):
+    """body['cg'] = {nome da aeronave: codigo | [codigos]} do POPT 30 (limite
+    dianteiro de CG), aceitos pela base da aeronave; ausente = Standard (0).
+    multi=False: {nome: codigo} (so um; Standard fica de fora).
+    multi=True: {nome: [codigos]} na ordem das opcoes (so Standard fica de
+    fora)."""
+    out = {}
+    for name, value in (body.get("cg") or {}).items():
+        ac = next((a for a in AIRCRAFT if a.name == name), None)
+        if ac is None:
+            continue
+        chosen = set()
+        for item in value if isinstance(value, list) else [value]:
+            if item in (None, ""):
+                continue
+            try:
+                code = int(item)
+            except (TypeError, ValueError):
+                code = None
+            if code not in dict(ac.cg):
+                raise BadRequest(f"Limite de CG inválido para {name}: {item}")
+            chosen.add(code)
+        ordered = [c for c, _ in ac.cg if c in chosen]
+        if multi:
+            if ordered and ordered != [0]:
+                out[name] = ordered
+        elif ordered and ordered[-1]:
+            out[name] = ordered[-1]
+    return out
+
+
+def flap_units(planes, flaps, cgs=None):
+    """[(aircraft, variant, flap, nome do flap, cg, nome do cg)] para cada
+    aeronave, flap e limite de CG escolhidos. Nome vazio = so o otimo / so
+    o Standard (sem sufixo na chave)."""
+    cgs = cgs or {}
     units = []
     for ac, v in planes:
-        names = dict(flap_options(ac))
+        names, cg_names = dict(flap_options(ac)), dict(ac.cg)
         for code in flaps.get(ac.name, [None]):
             label = "" if ac.name not in flaps else \
                 "Flap ótimo" if code is None else names[code]
-            units.append((ac, v, code, label))
+            for cg in cgs.get(ac.name, [0]):
+                cg_text = f"CG {cg_names[cg]}" if ac.name in cgs else ""
+                units.append((ac, v, code, label, cg, cg_text))
     return units
 
 
@@ -250,7 +286,7 @@ def pick_aircraft(body):
 
 
 # Campos da pista que o usuario pode alterar (ex.: NOTAM com parte da pista
-# fechada). Os obstaculos continuam os do airports_list.csv.
+# fechada). Os obstaculos vem a parte (override['obstacles']).
 #   campo -> (atributo do Runway, nome, minimo, maximo)
 RUNWAY_EDIT = {
     "elev": ("elev", "RUNWAY ELEVATION (RWYD1)", -2000, 16000),
@@ -260,10 +296,44 @@ RUNWAY_EDIT = {
     "slope": ("slope", "SLOPE TODA (RWYD6)", -5, 5),
     "width": ("width", "RUNWAY WIDTH (RWYD11)", 10, 100),
 }
+# obstaculo: distancia do fim da TORA (m) e altura (ft), como no cadastro
+OBSTACLE_DIST = (0, 20000)
+OBSTACLE_HEIGHT = (0, 5000)
+
+
+def edited_obstacles(rw, items):
+    """Lista de obstaculos que vai para o calculo: [{dist, height, on}]
+    (on=False fica de fora) ou [dist, height]. Ordenada pela distancia."""
+    if not isinstance(items, list):
+        raise BadRequest(f"{rw.icao} {rw.rwy}: lista de obstáculos inválida")
+    out = []
+    for n, item in enumerate(items, 1):
+        if isinstance(item, dict):
+            if item.get("on") is False:
+                continue
+            dist, height = item.get("dist"), item.get("height")
+        elif isinstance(item, (list, tuple)) and len(item) == 2:
+            dist, height = item
+        else:
+            raise BadRequest(f"{rw.icao} {rw.rwy}: obstáculo {n} inválido")
+        dist = number(dist, f"{rw.icao} {rw.rwy} obstáculo {n}: distância")
+        height = number(height, f"{rw.icao} {rw.rwy} obstáculo {n}: altura")
+        for value, (lo, hi), what, unit in (
+                (dist, OBSTACLE_DIST, "distância", "m"),
+                (height, OBSTACLE_HEIGHT, "altura", "ft")):
+            if not lo <= value <= hi:
+                raise BadRequest(f"{rw.icao} {rw.rwy}: obstáculo {n} com {what} "
+                                 f"fora da faixa ({lo} a {hi} {unit}): {value:g}")
+        out.append((dist, height))
+    if len(out) > MAX_OBSTACLES:
+        raise BadRequest(f"{rw.icao} {rw.rwy}: {len(out)} obstáculos marcados; "
+                         f"o limite dos motores é {MAX_OBSTACLES}")
+    return sorted(out)
 
 
 def edited_runway(rw, override):
-    """Copia da pista com os valores alterados (RWYD 1, 3, 4, 5, 6, 8, 11)."""
+    """Copia da pista com os valores alterados (RWYD 1, 3, 4, 5, 6, 8, 11 e
+    os obstaculos)."""
     changes = {}
     for key, (attr, label, lo, hi) in RUNWAY_EDIT.items():
         if override.get(key) in (None, ""):
@@ -276,6 +346,10 @@ def edited_runway(rw, override):
     if "surface" in override:                    # RWYD8: normal ou grooved
         changes["surface"] = ("GROOVED" if str(override["surface"]).lower()
                               in ("grooved", "2", "1") else "NORMAL")
+    if override.get("obstacles") is not None:    # OBSD
+        obstacles = edited_obstacles(rw, override["obstacles"])
+        if obstacles != sorted(tuple(o) for o in rw.obstacles):
+            changes["obstacles"] = obstacles
     new = dataclasses.replace(rw, **changes)
     if new == rw:
         return rw
@@ -342,10 +416,11 @@ def calc_job(body):
     planes = pick_aircraft(body)
     runways = pick_runways(body)
     cases = build_cases(body)
-    units = flap_units(planes, pick_flaps(body, multi=True))
+    units = flap_units(planes, pick_flaps(body, multi=True),
+                       pick_cg(body, multi=True))
     total = len(units) * len(runways) * len(cases)
     if total > MAX_TOTAL:
-        raise BadRequest(f"São {total} cálculos (aeronaves/flaps × pistas × "
+        raise BadRequest(f"São {total} cálculos (aeronaves/flaps/CG × pistas × "
                          f"combinações); o limite é {MAX_TOTAL}.")
     for ac, v in planes:
         try:
@@ -353,13 +428,14 @@ def calc_job(body):
         except scap_engine.ScapError as e:
             raise BadRequest(f"{ac.name} {v.display}: {e}")
     tasks, labels = [], []
-    for ac, v, flap, label in units:
+    for ac, v, flap, label, cg, cg_text in units:
         for rw in runways:
             align = align_values(rw, ac.align, TOALIGN)
             for t, cond in cases:
                 tasks.append((ac, v, rw, t,
-                              dataclasses.replace(cond, flap=flap), align))
-                labels.append(label)
+                              dataclasses.replace(cond, flap=flap, cg=cg),
+                              align))
+                labels.append((label, cg_text))
 
     def work(job):
         job["total"] = len(tasks)
@@ -369,9 +445,10 @@ def calc_job(body):
 
         results = scap_engine.compute_tasks(tasks, on_progress=progress)
         rows, csv_rows = [], []
-        for (ac, v, rw, t, cond, _), label, res in zip(tasks, labels,
-                                                       results):
-            row = {"plane": plane_key(ac, v, label), "runway": runway_key(rw),
+        for (ac, v, rw, t, cond, _), (label, cg_text), res in zip(
+                tasks, labels, results):
+            row = {"plane": plane_key(ac, v, label, cg_text),
+                   "runway": runway_key(rw),
                    "temp": t, "wind": cond.wind, "crosswind": cond.crosswind,
                    "qnh": cond.qnh}
             base = {"aircraft": ac.name, "engine": v.display, "icao": rw.icao,
@@ -379,7 +456,8 @@ def calc_job(body):
                     "rwy": rw.rwy + (" (editada)" if getattr(rw, "edited", False) else ""),
                     "to_align": rw.to_align, "n_obst": len(rw.obstacles),
                     "temp_c": t, **condition_columns(cond),
-                    "flap_sel": label or "ótimo"}
+                    "flap_sel": label or "ótimo",
+                    "cg_sel": dict(ac.cg)[cond.cg]}
             if "error" in res:
                 row["error"] = " | ".join(res["error"].splitlines())
                 base["error"] = row["error"]
@@ -394,32 +472,35 @@ def calc_job(body):
             csv_rows.append(base)
         name = save_csv(csv_rows, planes, runways, cases)
         return {
-            "planes": [{"key": plane_key(ac, v, label), "aircraft": ac.name,
-                        "engine": v.display, "flap": label,
+            "planes": [{"key": plane_key(ac, v, label, cg_text),
+                        "aircraft": ac.name, "engine": v.display, "flap": label,
+                        "cg": cg_text,
                         "speeds": ac.engine != "takeoff_module"}
-                       for ac, v, _, label in units],
+                       for ac, v, _, label, _, cg_text in units],
             "runways": [{"key": runway_key(rw), "icao": rw.icao,
                          "rwy": rw.rwy, "airport": rw.name.title(),
                          "edited": getattr(rw, "edited", False),
                          "data": {"elev": rw.elev, "tora": rw.tora, "asda": rw.asda,
                                   "toda": rw.toda, "slope": rw.slope,
-                                  "surface": rw.surface, "width": rw.width}}
+                                  "surface": rw.surface, "width": rw.width,
+                                  "obstacles": rw.obstacles}}
                         for rw in runways],
             "rows": rows, "csv": name}
 
     return start_job("calc", work)
 
 
-def plane_key(ac, v, flap=""):
-    return f"{ac.name} {v.display}" + (f" · {flap}" if flap else "")
+def plane_key(ac, v, flap="", cg=""):
+    return f"{ac.name} {v.display}" + "".join(f" · {x}" for x in (flap, cg) if x)
 
 
 def runway_key(rw):
     return f"{rw.icao} {rw.rwy}{' (editada)' if getattr(rw, 'edited', False) else ''}"
 
 
-# colunas do batch + o flap pedido (flap_sel: "ótimo" ou o flap fixo)
-CALC_COLUMNS = COLUMNS[:COLUMNS.index("mtow_kg")] + ["flap_sel"] + \
+# colunas do batch + o flap pedido (flap_sel: "ótimo" ou o flap fixo) e o
+# limite dianteiro de CG (cg_sel)
+CALC_COLUMNS = COLUMNS[:COLUMNS.index("mtow_kg")] + ["flap_sel", "cg_sel"] + \
     COLUMNS[COLUMNS.index("mtow_kg"):]
 
 
@@ -480,6 +561,7 @@ def malha_job(body):
         raise BadRequest(f"Arquivo não encontrado: {path}")
     cases = build_cases(body)
     flaps = pick_flaps(body)            # malha: um flap por aeronave
+    cgs = pick_cg(body)
     refs = {}
     for name, value in (body.get("refs") or {}).items():
         if value in (None, ""):
@@ -496,7 +578,7 @@ def malha_job(body):
 
         summary = malha.process(path, cases, None, progress,
                                 log=lambda _msg: None, refs=refs,
-                                flaps=flaps)
+                                flaps=flaps, cgs=cgs)
         rows = []
         for info in summary:
             cond, wc = info["cond"], info["worst_cond"]
