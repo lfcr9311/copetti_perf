@@ -654,6 +654,12 @@ function physicalRunway(airport, rwy) {
   }
   return { key: `${airport.icao} ${a}-${b}`, a, b, L, ways };
 }
+/** Rotulo da intersecao no desenho: a letra (15/A -> A), ou o nome inteiro
+ * quando a mesma letra existe nos dois sentidos (15/B e 33/B). */
+function interLabel(phys, name) {
+  const letter = name.split("/")[1];
+  return Object.keys(phys.ways).filter((n) => n.split("/")[1] === letter).length > 1 ? name : letter;
+}
 /** Corte no inicio e no fim da TORA de uma pista e as distancias que sobram. */
 function closureCuts(phys, rwy, closure) {
   const w = phys.ways[rwy], r = w.rw;
@@ -918,7 +924,7 @@ function drawPlan() {
       if (!w.inter) continue;
       const x = sx(w.start);
       svg.append(s("line", { x1: x, y1: 34, x2: x, y2: 66, class: "rw-inter" }),
-        s("text", { x, y: 76, class: `rw-inter-label${name === item.rwy ? " on" : ""}`, "text-anchor": "middle", text: name.split("/")[1] }));
+        s("text", { x, y: 76, class: `rw-inter-label${name === item.rwy ? " on" : ""}`, "text-anchor": "middle", text: interLabel(phys, name) }));
     }
   }
   // seta do sentido da decolagem da pista editada
@@ -1006,6 +1012,7 @@ $("#rwe-ref").addEventListener("change", (e) => {
  * lateral com a reducao, os sentidos selecionados e os obstaculos de cada
  * sentido depois do fim da TORA (fora da pista, distancia comprimida). */
 const panelLoading = new Set();
+const PANEL_STORE = "perf.rwPanelCollapsed";
 let sideUid = 0;
 /** Pista como vai para o calculo: reducao + edicoes; obstaculos considerados. */
 function effectiveRunway(item) {
@@ -1031,9 +1038,18 @@ function renderRunwayPanel() {
     groups.get(key).items.push(item);
   }
   panel.hidden = !groups.size;
+  let collapsed = false;
+  try { collapsed = localStorage.getItem(PANEL_STORE) === "1"; } catch (e) { /* sem storage */ }
+  panel.classList.toggle("collapsed", collapsed);
   panel.replaceChildren(...(groups.size ? [
-    h("header", { class: "rw-panel-head" }, h("h2", { text: "Pistas selecionadas" }),
-      h("small", { class: "muted", text: "Vista lateral em escala; fora da pista a distância é comprimida. ✎ edita a redução, os dados e os obstáculos." })),
+    h("header", { class: "rw-panel-head" }, h("h2", { text: `Pistas selecionadas (${groups.size})` }),
+      h("small", { class: "muted", text: "Vista lateral em escala; fora da pista a distância é comprimida. ✎ edita a redução, os dados e os obstáculos." }),
+      h("span", { class: "grow" }),
+      h("button", { type: "button", class: "link", "aria-expanded": !collapsed, text: collapsed ? "Mostrar" : "Recolher",
+        onclick: () => {
+          try { localStorage.setItem(PANEL_STORE, collapsed ? "0" : "1"); } catch (e) { /* sem storage */ }
+          renderRunwayPanel();
+        } })),
     ...[...groups.values()].map(physCard)] : []));
 }
 function physCard({ airport, phys, items }) {
@@ -1090,7 +1106,7 @@ function drawSideView(phys, eff) {
     for (const [name, w] of Object.entries(phys.ways)) {
       if (!w.inter) continue;
       svg.append(s("line", { x1: sx(w.start), y1: GY - 12, x2: sx(w.start), y2: GY + 3, class: "rw-inter" }),
-        s("text", { x: sx(w.start), y: GY + 15, class: "rw-inter-label", "text-anchor": "middle", text: name.split("/")[1] }));
+        s("text", { x: sx(w.start), y: GY + 15, class: "rw-inter-label", "text-anchor": "middle", text: interLabel(phys, name) }));
     }
   }
   // setas dos sentidos selecionados (acima da pista)

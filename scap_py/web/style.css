@@ -621,7 +621,7 @@ table.obst-table small.shift { display: block; font-size: 11px; color: var(--mut
 .rwe-obst-head { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 8px; }
 .rwe-obst h3 { font-size: 11.5px; font-weight: 750; letter-spacing: .05em; color: var(--ink-2); text-transform: uppercase; }
 .rwe-obst p.muted { font-size: 12.5px; }
-.rwe-obst .table-wrap { max-height: 260px; }
+.rwe-obst .table-wrap { max-height: none; overflow: visible; }
 table.obst-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 table.obst-table th { position: sticky; top: 0; z-index: 1; background: var(--surface-2); text-align: left; font-size: 11px;
   text-transform: uppercase; letter-spacing: .05em; color: var(--muted); font-weight: 700; padding: 8px 10px;
@@ -699,8 +699,10 @@ table.data td small { display: block; color: var(--muted); font-size: 11.5px; }
 #malha-file { padding: 8px 0; }
 
 /* ---------------------------------------------------------------- painel das pistas */
-.rw-panel { padding: 16px 20px; display: grid; gap: 14px; max-height: 560px; overflow: auto; }
-.rw-panel-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 12px; }
+.rw-panel { padding: 14px 20px; display: grid; gap: 12px; }
+.rw-panel-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; }
+.rw-panel-head .grow { flex: 1; }
+.rw-panel.collapsed .rw-card, .rw-panel.collapsed .rw-panel-head small { display: none; }
 .rw-panel-head h2 { font-size: 15px; font-weight: 750; }
 .rw-card { display: grid; gap: 6px; padding-top: 12px; border-top: 1px solid var(--line); }
 .rw-card-head { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; font-size: 13.5px; }
