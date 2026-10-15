@@ -93,6 +93,7 @@
 
       <!-- resultado -->
       <main class="stage">
+        <section id="rw-panel" class="surface rw-panel" aria-label="Pistas selecionadas" hidden></section>
         <div id="calc-empty" class="guide" aria-label="Como usar">
           <p class="kicker">Como usar</p>
           <h2>Quatro passos, todos na coluna da esquerda</h2>
@@ -226,14 +227,22 @@
         <div><h2 id="rwe-title">Editar pista</h2><p class="muted" id="rwe-sub"></p></div>
         <button class="icon-close" value="cancel" type="submit" aria-label="Fechar">×</button>
       </header>
-      <div class="rwe-quick">
-        <span>Pista fechada no fim:</span>
-        <button type="button" class="mini" id="rwe-third">Último terço fechado</button>
-        <span class="muted">ou descontar</span>
-        <input type="number" id="rwe-cut" class="num-input" min="0" step="1" placeholder="m" aria-label="Metros a descontar">
-        <span class="muted">m de TORA, ASDA e TODA</span>
-        <button type="button" class="mini" id="rwe-cut-apply">Descontar</button>
-      </div>
+      <div class="rwe-body">
+      <div class="rwe-main">
+      <fieldset class="rwe-quick rwe-closure" id="rwe-closure">
+        <legend>Redução de pista <span class="muted" id="rwe-closure-pair"></span></legend>
+        <div class="closure-ends">
+          <label class="closure-end">
+            <span>Fechado a partir da cabeceira <b data-thr="a"></b></span>
+            <span class="row"><input type="number" id="rwe-close-a" class="num-input" min="0" step="1" placeholder="0" inputmode="numeric"><span class="unit">m</span></span>
+          </label>
+          <label class="closure-end">
+            <span>Fechado a partir da cabeceira <b data-thr="b"></b></span>
+            <span class="row"><input type="number" id="rwe-close-b" class="num-input" min="0" step="1" placeholder="0" inputmode="numeric"><span class="unit">m</span></span>
+          </label>
+        </div>
+        <p class="closure-note" id="rwe-closure-note"></p>
+      </fieldset>
       <div class="rwe-grid" id="rwe-fields"></div>
       <section class="rwe-obst" aria-labelledby="rwe-obst-title">
         <div class="rwe-obst-head">
@@ -253,8 +262,17 @@
         </table></div>
         <p class="rwe-note" id="rwe-obst-empty" hidden>Sem obstáculos. Use <b>+ Adicionar</b> para incluir um.</p>
       </section>
-      <p class="rwe-note">A alteração (dados e obstáculos) vale só para as consultas desta pista neste navegador;
-        o <code>airports_list.csv</code> não é alterado.</p>
+      <p class="rwe-note">A alteração vale só para as consultas neste navegador; o <code>airports_list.csv</code> não é alterado.
+        A redução de pista vale para todas as pistas da mesma pista física (as duas cabeceiras e as interseções).</p>
+      </div>
+      <aside class="rwe-draw" aria-label="Desenho da pista">
+        <h3>Pista <small class="muted">vista de cima, em escala</small></h3>
+        <svg id="rwe-plan" class="rwe-svg" role="img" aria-label="Pista vista de cima"></svg>
+        <h3>Obstáculos <small class="muted">a partir do fim da TORA</small></h3>
+        <svg id="rwe-profile" class="rwe-svg" role="img" aria-label="Perfil dos obstáculos"></svg>
+        <label class="rwe-ref"><input type="checkbox" id="rwe-ref"> Trajetória de referência <span class="muted">(ilustrativa: 35 ft no fim da TODA e 1,6 %; o cálculo é o do motor)</span></label>
+      </aside>
+      </div>
       <footer>
         <button type="button" class="btn outline" id="rwe-reset">Restaurar original</button>
         <span class="grow"></span>

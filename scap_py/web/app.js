@@ -276,6 +276,7 @@ const state = {
   airports: {},                 // cache de /api/airport/<ICAO>
   flaps: {},                    // {nome da aeronave: [null (otimo) e/ou codigos]}; ausente = so o otimo
   cgs: {},                      // {nome da aeronave: [codigos do POPT 30]}; ausente = so Standard (0)
+  closures: {},                 // {"ICAO 12-30": {"12": m, "30": m}} metros fechados a partir de cada cabeceira
   result: null, view: "summary", chart: null, rtow: {}, sort: { key: "plane", dir: 1 },
 };
 const planeId = (i, j) => `${i}:${j}`;
@@ -303,13 +304,14 @@ function planeIdOf(label) {
 }
 function runwaysText() {
   const groups = {};
-  for (const r of state.runways) (groups[r.icao] ||= []).push(r.rwy + (r.edit ? "*" : ""));
+  for (const r of state.runways) (groups[r.icao] ||= []).push(r.rwy + (isChanged(r) ? "*" : ""));
   return Object.entries(groups).map(([icao, rwys]) => `${icao} ${rwys.join(", ")}`).join(" · ");
 }
 function snapshot() {
   return { planes: [...state.planes].map(planeLabel), runways: state.runways.map((r) => ({ ...r })), conds: calcForm.getState(),
     ...(Object.keys(state.flaps).length ? { flaps: { ...state.flaps } } : {}),
-    ...(Object.keys(state.cgs).length ? { cgs: { ...state.cgs } } : {}) };
+    ...(Object.keys(state.cgs).length ? { cgs: { ...state.cgs } } : {}),
+    ...(Object.keys(state.closures).length ? { closures: { ...state.closures } } : {}) };
 }
 function restore(snap, { quiet } = {}) {
   if (!snap) return;
@@ -317,6 +319,7 @@ function restore(snap, { quiet } = {}) {
   state.runways = (snap.runways || []).filter((r) => r && r.icao && r.rwy);
   state.flaps = Object.fromEntries(Object.entries(snap.flaps || {})        // antes: um codigo so
     .map(([k, v]) => [k, Array.isArray(v) ? v : [v]]));
+  state.closures = { ...(snap.closures || {}) };
   state.cgs = Object.fromEntries(Object.entries(snap.cgs || {})          // antes: um codigo so
     .map(([k, v]) => [k, Array.isArray(v) ? v : [v]]));
   if (snap.conds) calcForm.setState(snap.conds);
@@ -554,7 +557,7 @@ function renderAirportRunways() {
   $("#airport-name").textContent = `${a.icao}${a.iata ? " / " + a.iata : ""} · ${a.name}`;
   $("#airport-meta").textContent = `elev. ${kg(a.runways[0].elev)} ft · ${a.runways.length} pista${a.runways.length > 1 ? "s" : ""}/interseç${a.runways.length > 1 ? "ões" : "ão"}`;
   $("#runways").replaceChildren(...a.runways.map((r) => h("button", {
-    class: `pill${state.runways.some((x) => x.icao === a.icao && x.rwy === r.rwy && x.edit) ? " edited" : ""}`,
+    class: `pill${isChanged(state.runways.find((x) => x.icao === a.icao && x.rwy === r.rwy) || { icao: a.icao, rwy: r.rwy }) ? " edited" : ""}`,
     type: "button", "aria-pressed": isSelected(a.icao, r.rwy),
     title: `TORA ${kg(r.tora)} · TODA ${kg(r.toda)} · ASDA ${kg(r.asda)} m · largura ${kg(r.width)} m · incl. ${num(r.slope)}% · `
       + `${r.obstacles.length ? `${r.obstacles.length} obstáculo(s)` : "sem obstáculos"} · alinhamento ${r.to_align}`,
@@ -566,8 +569,8 @@ function renderSelectedRunways() {
   for (const r of state.runways) (groups[r.icao] ||= []).push(r);
   $("#selected-runways").replaceChildren(...Object.entries(groups).map(([icao, rws]) => h("div", { class: "sel-row" },
     h("b", { text: icao }),
-    ...rws.map((r) => h("span", { class: `tag${r.edit ? " edited" : ""}`, title: r.edit ? editText(r.edit) : null }, r.rwy,
-      r.edit ? h("small", { class: "flag", text: "editada" }) : null,
+    ...rws.map((r) => h("span", { class: `tag${isChanged(r) ? " edited" : ""}`, title: isChanged(r) ? changeText(r) : null }, r.rwy,
+      isChanged(r) ? h("small", { class: "flag", text: "editada" }) : null,
       h("button", { type: "button", class: "edit", title: `Editar dados e obstáculos de ${runwayId(r)}`,
         "aria-label": `Editar ${runwayId(r)}`, text: "✎", onclick: () => openRunwayEditor(r) }),
       h("button", { type: "button", title: `Tirar ${runwayId(r)}`, "aria-label": `Tirar ${runwayId(r)}`, text: "×",
@@ -576,11 +579,12 @@ function renderSelectedRunways() {
   $("#runways-count").textContent = String(n);
   $("#runways-count").toggleAttribute("data-zero", !n);
   $("#runways-hint").hidden = n > 0 || !!state.airport;
+  renderRunwayPanel();
 }
 
 // ------------------------------------------------------------------ edicao dos dados da pista
-/* Altera so o que vai para o calculo (RWYD 1, 3, 4, 5, 6, 8 e 11) e os
- * obstaculos (OBSD). Limites iguais aos de app.py. */
+/* Altera so o que vai para o calculo (RWYD 1, 3, 4, 5, 6, 8 e 11), os
+ * obstaculos (OBSD) e a reducao da pista fisica. Limites iguais aos de app.py. */
 const RW_FIELDS = [
   { key: "elev", label: "RUNWAY ELEVATION", rwyd: "RWYD1", unit: "ft", min: -2000, max: 16000, step: 1 },
   { key: "tora", label: "TORA", rwyd: "RWYD3", unit: "m", min: 100, max: 6000, step: 1 },
@@ -596,16 +600,19 @@ const fieldText = (f, v) => (f.key === "surface" ? surfaceText(v) : `${f.key ===
 function editText(edit) {
   const parts = RW_FIELDS.filter((f) => f.key in edit).map((f) => `${f.label} ${fieldText(f, edit[f.key])}`);
   if (edit.obstacles) parts.push(obstText(edit.obstacles));
-  return "Editada: " + parts.join(" · ");
+  return parts.join(" · ");
 }
 
-/* Obstaculos da pista no editor: { dist (m, do fim da TORA), height (ft),
- * on (entra no calculo), cad (indice no cadastro; null = novo) }. Vai para
- * app.py em override.obstacles; os desmarcados ficam de fora. */
+/* Obstaculos da pista no editor: { dist (m, do fim da TORA do cadastro),
+ * height (ft), on (entra no calculo), cad (indice no cadastro; null = novo) }.
+ * Com o fim da pista fechado, os do cadastro andam junto com o fim da TORA
+ * (dist + corte no fim); os novos ja sao digitados a partir do novo fim. */
 const MAX_OBST = 15;   // takeoff_data.dat: OBSD(3) ate OBSD(46)
 const OBST_LIMITS = { dist: { min: 0, max: 20000, step: 1 }, height: { min: 0, max: 5000, step: 1 } };
 const obstFromCad = (list) => list.map(([dist, height], i) => ({ dist, height, on: true, cad: i }));
 const obstOn = (list) => list.filter((o) => o.on).length;
+const shiftedDist = (o, shift) => (o.cad != null && o.dist != null ? o.dist + shift : o.dist);
+const effectiveObstacles = (list, shift) => list.map((o) => ({ ...o, dist: shiftedDist(o, shift) }));
 function obstText(list) {
   const on = obstOn(list), added = list.filter((o) => o.cad == null).length;
   return `obstáculos: ${on} de ${list.length} considerados${added ? ` (${added} novo${added > 1 ? "s" : ""})` : ""}`;
@@ -614,37 +621,132 @@ function obstChanged(list, cad) {
   return list.length !== cad.length || list.some((o, i) => !o.on || o.cad !== i
     || o.dist !== cad[i][0] || o.height !== cad[i][1]);
 }
+
+// ------------------------------------------------------------------ pista fisica e reducao
+/* A pista fisica vai da cabeceira a (x = 0) a cabeceira b (x = L). Cada pista
+ * do cadastro e um sentido dela: as da cabeceira a e suas intersecoes (12,
+ * 12/A) decolam para +x; as da b, para -x. A intersecao comeca dentro da pista
+ * (TORA da cabeceira - TORA da intersecao) e termina no mesmo fim da TORA.
+ * Aproximacao: as duas TORAs comecam nas pontas do pavimento (sem cabeceira
+ * deslocada). A reducao e em metros fechados a partir de cada cabeceira e
+ * vale para todas as pistas da pista fisica. */
+const RWY_RE = /^(\d{2})([LRC]?)(?:\/(.+))?$/;
+function oppositeEnd(base) {
+  const m = /^(\d{2})([LRC]?)$/.exec(base);
+  return String((+m[1] + 17) % 36 + 1).padStart(2, "0") + ({ L: "R", R: "L" }[m[2]] ?? m[2]);
+}
+function physicalRunway(airport, rwy) {
+  const m = RWY_RE.exec(rwy);
+  if (!m) return null;
+  const [a, b] = [m[1] + m[2], oppositeEnd(m[1] + m[2])].sort();
+  const byName = Object.fromEntries(airport.runways.map((r) => [r.rwy, r]));
+  const members = airport.runways.filter((r) => {
+    const k = RWY_RE.exec(r.rwy);
+    return k && [a, b].includes(k[1] + k[2]);
+  });
+  const L = Math.max(...members.map((r) => r.tora));
+  const ways = {};
+  for (const r of members) {
+    const k = RWY_RE.exec(r.rwy), end = k[1] + k[2], main = byName[end];
+    const offset = main ? Math.max(0, main.tora - r.tora) : 0;
+    const dir = end === a ? 1 : -1;
+    ways[r.rwy] = { rw: r, dir, start: dir > 0 ? offset : L - offset, inter: !!k[3] };
+  }
+  return { key: `${airport.icao} ${a}-${b}`, a, b, L, ways };
+}
+/** Corte no inicio e no fim da TORA de uma pista e as distancias que sobram. */
+function closureCuts(phys, rwy, closure) {
+  const w = phys.ways[rwy], r = w.rw;
+  const ca = Math.max(0, closure[phys.a] || 0), cb = Math.max(0, closure[phys.b] || 0);
+  const toraEnd = w.start + w.dir * r.tora;
+  const beg = w.dir > 0 ? Math.max(0, ca - w.start) : Math.max(0, cb - (phys.L - w.start));
+  const end = w.dir > 0 ? Math.max(0, toraEnd - (phys.L - cb)) : Math.max(0, ca - toraEnd);
+  const tora = Math.max(100, r.tora - beg - end);
+  /* Fim fechado: stopway e clearway ficam alem do trecho fechado, entao ASDA
+   * e TODA nao passam da nova TORA. Inicio fechado: as tres perdem o trecho. */
+  const cut = (d) => Math.max(100, end > 0 ? Math.min(d - beg, tora) : d - beg);
+  return { beg, end, tora, asda: cut(r.asda), toda: cut(r.toda) };
+}
+/** Reducao que vale para uma pista selecionada (null = nenhuma). */
+function cutsFor(icao, rwy) {
+  const airport = state.airports[icao];
+  const phys = airport && physicalRunway(airport, rwy);
+  if (!phys || !state.closures[phys.key]) return null;
+  const c = closureCuts(phys, rwy, state.closures[phys.key]);
+  return c.beg || c.end ? c : null;
+}
+/** O que vai para o app.py: reducao + edicoes a mao (campos e obstaculos). */
+function runwayOverride(item) {
+  const cuts = cutsFor(item.icao, item.rwy), edit = item.edit || {};
+  const out = cuts ? { tora: cuts.tora, asda: cuts.asda, toda: cuts.toda } : {};
+  for (const f of RW_FIELDS) if (f.key in edit) out[f.key] = edit[f.key];
+  const shift = cuts?.end || 0;
+  if (edit.obstacles || shift) {
+    const rw = state.airports[item.icao].runways.find((r) => r.rwy === item.rwy);
+    out.obstacles = effectiveObstacles(edit.obstacles || obstFromCad(rw.obstacles), shift);
+  }
+  return Object.keys(out).length ? out : null;
+}
+const isChanged = (r) => !!(r.edit || cutsFor(r.icao, r.rwy));
+function changeText(r) {
+  const cuts = cutsFor(r.icao, r.rwy), parts = [];
+  if (cuts) parts.push(`redução: início −${kg(cuts.beg)} m, fim −${kg(cuts.end)} m`);
+  if (r.edit) parts.push(editText(r.edit));
+  return "Editada: " + parts.join(" · ");
+}
+
+// ------------------------------------------------------------------ editor
 const editor = $("#rw-editor");
-let editing = null;   // { item, orig, obst }
+let editing = null;   // { item, airport, orig, phys, closure, obst }
 for (const b of editor.querySelectorAll('button[value="cancel"]')) b.formNoValidate = true;
+const DIST_KEYS = ["tora", "asda", "toda"];
+
+/** Valores da pista com a reducao (sem as edicoes a mao) e os cortes. */
+function editorBase() {
+  const { orig, phys, item, closure } = editing;
+  const cuts = phys ? closureCuts(phys, item.rwy, closure) : null;
+  const values = { ...orig };
+  if (cuts) for (const k of DIST_KEYS) values[k] = cuts[k];
+  return { values, cuts: cuts && (cuts.beg || cuts.end) ? cuts : null };
+}
 
 async function openRunwayEditor(item) {
   let a;
   try { a = await getAirport(item.icao); } catch (e) { return alert(e.message); }
   const rw = a.runways.find((r) => r.rwy === item.rwy);
   if (!rw) return;
-  const orig = { ...rw, surface: surfaceOf(rw.surface) };
-  const obst = (item.edit?.obstacles || obstFromCad(rw.obstacles)).map((o) => ({ ...o }));
-  editing = { item, orig, obst };
+  const phys = physicalRunway(a, item.rwy);
+  editing = {
+    item, airport: a, phys, orig: { ...rw, surface: surfaceOf(rw.surface) },
+    closure: { ...(phys && state.closures[phys.key]) },
+    obst: (item.edit?.obstacles || obstFromCad(rw.obstacles)).map((o) => ({ ...o })),
+  };
   $("#rwe-title").textContent = `Editar pista ${item.icao} ${item.rwy}`;
   $("#rwe-sub").textContent = `${a.name} · ${rw.obstacles.length ? `${rw.obstacles.length} obstáculo(s) do cadastro` : "sem obstáculos no cadastro"}`;
-  $("#rwe-cut").value = "";
+  $("#rwe-closure").hidden = !phys;
+  if (phys) {
+    $("#rwe-closure-pair").textContent = `· pista ${phys.a}/${phys.b}`;
+    for (const side of ["a", "b"]) {
+      $(`#rwe-closure [data-thr="${side}"]`).textContent = phys[side];
+      $(`#rwe-close-${side}`).value = editing.closure[phys[side]] || "";
+      $(`#rwe-close-${side}`).max = phys.L - 100;
+    }
+  }
+  const { values } = editorBase();
   $("#rwe-fields").replaceChildren(...RW_FIELDS.map((f) => {
-    const value = item.edit?.[f.key] ?? orig[f.key];
     const input = f.key === "surface"
       ? h("select", { id: `rwe-${f.key}` }, h("option", { value: "normal", text: "Normal" }), h("option", { value: "grooved", text: "Grooved" }))
       : h("input", { id: `rwe-${f.key}`, type: "number", min: f.min, max: f.max, step: f.step, required: true, inputmode: "decimal" });
-    input.value = value;
-    input.addEventListener("input", markChanged);
+    input.value = item.edit?.[f.key] ?? values[f.key];
+    input.addEventListener("input", () => { markChanged(); drawRunway(); });
     return h("div", { class: "rwe-field", "data-key": f.key },
       h("label", { for: `rwe-${f.key}`, text: `${f.label} (${f.rwyd})` }),
       h("div", { class: "row" }, input, f.unit ? h("span", { class: "unit", text: f.unit }) : null),
-      h("small", { text: `Cadastro: ${fieldText(f, orig[f.key])}` }));
+      h("small", { id: `rwe-${f.key}-info` }));
   }));
-  renderObstacles();
-  markChanged();
+  syncReduced(false);
   editor.showModal();
-  $("#rwe-tora").focus();
+  (phys ? $("#rwe-close-a") : $("#rwe-tora")).focus();
 }
 function editorValues() {
   const out = {};
@@ -654,26 +756,67 @@ function editorValues() {
   }
   return out;
 }
+/** "changed" = editado a mao (difere do valor com a reducao); "reduced" = a
+ * reducao mudou o valor do cadastro. */
 function markChanged() {
-  const v = editorValues();
+  const v = editorValues(), { values } = editorBase();
   for (const f of RW_FIELDS) {
-    $(`.rwe-field[data-key="${f.key}"]`).classList.toggle("changed", v[f.key] != null && v[f.key] !== editing.orig[f.key]);
+    const box = $(`.rwe-field[data-key="${f.key}"]`);
+    box.classList.toggle("changed", v[f.key] != null && v[f.key] !== values[f.key]);
+    box.classList.toggle("reduced", values[f.key] !== editing.orig[f.key]);
+    $(`#rwe-${f.key}-info`).textContent = `Cadastro: ${fieldText(f, editing.orig[f.key])}`
+      + (values[f.key] !== editing.orig[f.key] ? ` · com redução: ${fieldText(f, values[f.key])}` : "");
   }
+}
+/** Reducao mudou: TORA/ASDA/TODA que nao foram editadas a mao seguem a
+ * reducao; obstaculos, nota e desenho sao refeitos. */
+function syncReduced(follow = true) {
+  if (follow) {
+    const v = editorValues(), { values } = editorBase(), before = editing.lastBase || values;
+    for (const k of DIST_KEYS) if (v[k] === before[k]) $(`#rwe-${k}`).value = values[k];
+  }
+  editing.lastBase = editorBase().values;
+  markChanged(); renderClosureNote(); renderObstacles();
+}
+for (const side of ["a", "b"]) {
+  $(`#rwe-close-${side}`).addEventListener("input", (e) => {
+    const thr = editing.phys[side], v = Number(e.target.value);
+    if (e.target.value === "" || !(v > 0)) delete editing.closure[thr];
+    else editing.closure[thr] = v;
+    syncReduced();
+  });
+}
+function renderClosureNote() {
+  const { phys, item } = editing;
+  if (!phys) return;
+  const { cuts } = editorBase();
+  const others = Object.keys(phys.ways).filter((r) => r !== item.rwy);
+  const parts = [h("b", { text: `Pista ${item.rwy}: ` }),
+    cuts ? `início da TORA −${kg(cuts.beg)} m · fim da TORA −${kg(cuts.end)} m`
+      + (cuts.end ? ` · obstáculos do cadastro +${kg(cuts.end)} m` : "") : "sem redução"];
+  if (others.length) parts.push(h("br"), `A mesma redução vale para ${others.join(", ")}.`);
+  const tooBig = phys && (editing.closure[phys.a] || 0) + (editing.closure[phys.b] || 0) > phys.L - 100;
+  if (tooBig) parts.push(h("br"), h("b", { class: "err", text: `Trecho fechado maior que a pista (${kg(phys.L)} m).` }));
+  $("#rwe-closure-note").replaceChildren(...parts);
 }
 
 function renderObstacles() {
   const { obst, orig } = editing;
-  const cad = orig.obstacles;
+  const cad = orig.obstacles, shift = editorBase().cuts?.end || 0;
   const full = obstOn(obst) >= MAX_OBST;
   const numInput = (o, key, n) => {
-    const changed = o.cad != null && o[key] !== cad[o.cad][key === "dist" ? 0 : 1];
+    const idx = key === "dist" ? 0 : 1, sh = key === "dist" && o.cad != null ? shift : 0;
+    const changed = o.cad != null && o[key] !== cad[o.cad][idx];
     const input = h("input", { type: "number", ...OBST_LIMITS[key], required: true, inputmode: "decimal",
       class: changed ? "changed" : null, "aria-label": `${key === "dist" ? "Distância" : "Altura"} do obstáculo ${n}`,
-      title: o.cad != null ? `Cadastro: ${kg(cad[o.cad][key === "dist" ? 0 : 1])} ${key === "dist" ? "m" : "ft"}` : null });
-    input.value = o[key] ?? "";
+      title: o.cad == null ? null : key === "dist"
+        ? `Cadastro: ${kg(cad[o.cad][0])} m${shift ? ` + ${kg(shift)} m de pista fechada no fim` : ""}`
+        : `Cadastro: ${kg(cad[o.cad][1])} ft` });
+    input.value = o[key] == null ? "" : o[key] + sh;
     input.addEventListener("input", () => {
-      o[key] = input.value === "" ? null : Number(input.value);
-      input.classList.toggle("changed", o.cad != null && o[key] !== cad[o.cad][key === "dist" ? 0 : 1]);
+      o[key] = input.value === "" ? null : Number(input.value) - sh;
+      input.classList.toggle("changed", o.cad != null && o[key] !== cad[o.cad][idx]);
+      drawRunway();
     });
     return input;
   };
@@ -681,7 +824,8 @@ function renderObstacles() {
     h("td", {}, h("input", { type: "checkbox", checked: o.on, "aria-label": `Considerar o obstáculo ${i + 1}`,
       disabled: !o.on && full, title: !o.on && full ? `Máximo de ${MAX_OBST} obstáculos no cálculo` : null,
       onchange: (e) => { o.on = e.target.checked; renderObstacles(); } })),
-    h("td", {}, numInput(o, "dist", i + 1)),
+    h("td", {}, numInput(o, "dist", i + 1),
+      o.cad != null && shift ? h("small", { class: "shift", text: `cad. ${kg(cad[o.cad][0])} + ${kg(shift)}` }) : null),
     h("td", {}, numInput(o, "height", i + 1)),
     h("td", {}, h("span", { class: `src${o.cad == null ? " new" : ""}`, text: o.cad == null ? "Novo" : "Cadastro" })),
     h("td", {}, o.cad == null ? h("button", { type: "button", class: "del", text: "×", title: "Remover este obstáculo",
@@ -692,9 +836,10 @@ function renderObstacles() {
   $("#rwe-obst-empty").hidden = obst.length > 0;
   $(".obst-table").closest(".table-wrap").hidden = !obst.length;
   $("#rwe-obst-add").disabled = full;
-  $("#rwe-obst-add").title = full ? `Máximo de ${MAX_OBST} obstáculos no cálculo` : "Incluir um obstáculo que não está no cadastro";
+  $("#rwe-obst-add").title = full ? `Máximo de ${MAX_OBST} obstáculos no cálculo` : "Incluir um obstáculo que não está no cadastro (distância a partir do fim da TORA atual)";
   $("#rwe-obst-all").disabled = obst.every((o) => o.on) || obst.length > MAX_OBST;
   $("#rwe-obst-none").disabled = !obstOn(obst);
+  drawRunway();
 }
 $("#rwe-obst-add").addEventListener("click", () => {
   editing.obst.push({ dist: null, height: null, on: true, cad: null });
@@ -703,32 +848,24 @@ $("#rwe-obst-add").addEventListener("click", () => {
 });
 $("#rwe-obst-all").addEventListener("click", () => { for (const o of editing.obst) o.on = true; renderObstacles(); });
 $("#rwe-obst-none").addEventListener("click", () => { for (const o of editing.obst) o.on = false; renderObstacles(); });
-function setDistances(cut) {
-  /* Fim da pista fechado: TORA perde o trecho; stopway e clearway ficam alem
-   * do trecho fechado, entao ASDA e TODA passam a ser iguais a nova TORA. */
-  const tora = Math.max(100, Math.round(editing.orig.tora - cut));
-  for (const k of ["tora", "asda", "toda"]) $(`#rwe-${k}`).value = tora;
-  markChanged();
-}
-$("#rwe-third").addEventListener("click", () => setDistances(editing.orig.tora / 3));
-$("#rwe-cut-apply").addEventListener("click", () => {
-  const cut = Number($("#rwe-cut").value);
-  if ($("#rwe-cut").value === "" || !(cut >= 0)) return $("#rwe-cut").focus();
-  setDistances(cut);
-});
-$("#rwe-cut").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); $("#rwe-cut-apply").click(); } });
 $("#rwe-reset").addEventListener("click", () => {
+  editing.closure = {};
+  for (const side of ["a", "b"]) $(`#rwe-close-${side}`).value = "";
   for (const f of RW_FIELDS) $(`#rwe-${f.key}`).value = editing.orig[f.key];
   editing.obst = obstFromCad(editing.orig.obstacles);
-  renderObstacles();
-  markChanged();
+  syncReduced(false);
 });
 editor.addEventListener("close", () => {
   if (editor.returnValue === "apply" && editing) {
-    const v = editorValues(), edit = {};
-    for (const f of RW_FIELDS) if (v[f.key] != null && v[f.key] !== editing.orig[f.key]) edit[f.key] = v[f.key];
+    const v = editorValues(), { values } = editorBase(), edit = {};
+    for (const f of RW_FIELDS) if (v[f.key] != null && v[f.key] !== values[f.key]) edit[f.key] = v[f.key];
     if (obstChanged(editing.obst, editing.orig.obstacles)) edit.obstacles = editing.obst;
-    const { item } = editing;
+    const { item, phys, closure } = editing;
+    if (phys) {
+      const kept = Object.fromEntries(Object.entries(closure).filter(([, m]) => m > 0));
+      if (Object.keys(kept).length) state.closures[phys.key] = kept;
+      else delete state.closures[phys.key];
+    }
     state.runways = state.runways.map((r) => (r.icao === item.icao && r.rwy === item.rwy
       ? (Object.keys(edit).length ? { icao: r.icao, rwy: r.rwy, edit } : { icao: r.icao, rwy: r.rwy }) : r));
     refreshRunways();
@@ -736,6 +873,246 @@ editor.addEventListener("close", () => {
   editor.returnValue = "";
   editing = null;
 });
+
+// ------------------------------------------------------------------ desenho da pista
+/* Vista de cima (pista fisica em escala, trechos fechados, TORA/ASDA/TODA da
+ * pista editada, intersecoes) e perfil dos obstaculos (distancia a partir do
+ * fim da TORA x altura). Refeito a cada mudanca no editor. */
+const REF_STORE = "perf.rweRef";
+const svgClear = (svg, w, hgt) => { svg.setAttribute("viewBox", `0 0 ${w} ${hgt}`); svg.replaceChildren(); return svg; };
+function drawRunway() {
+  if (!editing) return;
+  drawPlan();
+  drawProfile();
+}
+function drawPlan() {
+  const W = 560, H = 168, pad = 32;
+  const svg = svgClear($("#rwe-plan"), W, H);
+  const { phys, item, closure } = editing;
+  const v = editorValues(), { cuts } = editorBase();
+  const way = phys ? phys.ways[item.rwy] : { dir: 1, start: 0 };
+  const L = phys ? phys.L : editing.orig.tora;
+  const dir = way.dir, s0 = way.start + dir * (cuts?.beg || 0);
+  const ends = ["tora", "asda", "toda"].map((k) => s0 + dir * (v[k] || 0));
+  const lo = Math.min(0, s0, ...ends), hi = Math.max(L, s0, ...ends);
+  const sx = (x) => pad + (x - lo) / (hi - lo || 1) * (W - 2 * pad);
+  const defs = s("defs", {}, s("pattern", { id: "rwe-hatch", width: 7, height: 7, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" },
+    s("rect", { width: 7, height: 7, class: "hatch-bg" }), s("line", { x1: 0, y1: 0, x2: 0, y2: 7, class: "hatch-line" })));
+  svg.append(defs);
+  // pavimento, eixo e cabeceiras
+  svg.append(s("rect", { x: sx(0), y: 34, width: sx(L) - sx(0), height: 26, rx: 3, class: "rw-strip" }),
+    s("line", { x1: sx(0) + 6, y1: 47, x2: sx(L) - 6, y2: 47, class: "rw-center" }));
+  if (phys) {
+    svg.append(s("text", { x: sx(0) - 5, y: 52, class: "rw-thr", "text-anchor": "end", text: phys.a }),
+      s("text", { x: sx(L) + 5, y: 52, class: "rw-thr", "text-anchor": "start", text: phys.b }));
+    // trechos fechados
+    for (const [thr, from] of [[phys.a, 0], [phys.b, L]]) {
+      const m = Math.min(closure[thr] || 0, L);
+      if (!m) continue;
+      const x1 = sx(from === 0 ? 0 : L - m), x2 = sx(from === 0 ? m : L);
+      svg.append(s("rect", { x: x1, y: 34, width: x2 - x1, height: 26, class: "rw-closed" }),
+        s("text", { x: (x1 + x2) / 2, y: 26, class: "rw-closed-label", "text-anchor": "middle", text: `fechado ${kg(m)} m` }));
+    }
+    // intersecoes: marca no ponto de entrada
+    for (const [name, w] of Object.entries(phys.ways)) {
+      if (!w.inter) continue;
+      const x = sx(w.start);
+      svg.append(s("line", { x1: x, y1: 34, x2: x, y2: 66, class: "rw-inter" }),
+        s("text", { x, y: 76, class: `rw-inter-label${name === item.rwy ? " on" : ""}`, "text-anchor": "middle", text: name.split("/")[1] }));
+    }
+  }
+  // seta do sentido da decolagem da pista editada
+  const ax = sx(s0), tip = ax + dir * 22;
+  svg.append(s("path", { d: `M${ax} 47 L${tip} 47 M${tip - dir * 7} 41 L${tip} 47 L${tip - dir * 7} 53`, class: "rw-arrow" }));
+  // TORA / ASDA / TODA
+  const bars = [["TORA", v.tora, 96, 8], ["ASDA", v.asda, 122, 4], ["TODA", v.toda, 146, 4]];
+  for (const [label, len, y, th] of bars) {
+    if (!len) continue;
+    const x1 = sx(s0), x2 = sx(s0 + dir * len), xt = sx(s0 + dir * Math.min(len, v.tora || len));
+    svg.append(s("line", { x1, y1: y, x2: xt, y2: y, class: `rw-bar ${label.toLowerCase()}`, "stroke-width": th }));
+    if (Math.abs(x2 - xt) > 0.5) svg.append(s("line", { x1: xt, y1: y, x2, y2: y, class: "rw-bar ext", "stroke-width": th }));
+    for (const x of [x1, x2]) svg.append(s("line", { x1: x, y1: y - 6, x2: x, y2: y + 6, class: "rw-tick" }));
+    svg.append(s("text", { x: (x1 + x2) / 2, y: y - 7, class: "rw-bar-label", "text-anchor": "middle", text: `${label} ${kg(len)} m` }));
+  }
+}
+function drawProfile() {
+  const W = 560, H = 230, l = 46, r = 14, t = 16, b = 40;
+  const svg = svgClear($("#rwe-profile"), W, H);
+  const v = editorValues(), shift = editorBase().cuts?.end || 0;
+  const obst = editing.obst.map((o, i) => ({ ...o, i, d: shiftedDist(o, shift) })).filter((o) => o.d != null && o.height != null);
+  const ext = Math.max(0, (v.toda || 0) - (v.tora || 0));          // clearway
+  const showRef = $("#rwe-ref").checked;
+  const refH = (d) => 35 + Math.max(0, d - ext) * 0.016 * 3.2808;  // ft
+  const maxD = Math.max(1000, ext * 1.5, ...obst.map((o) => o.d)) * 1.04;
+  // escala: linear ate D0 (62% da largura), comprimida (log) depois
+  const D0 = 2000, linear = maxD <= D0 * 1.25;
+  const fx = (d) => l + (W - l - r) * (linear ? d / maxD
+    : d <= D0 ? 0.62 * d / D0 : 0.62 + 0.38 * Math.log(d / D0) / Math.log(maxD / D0));
+  const maxH = Math.max(100, ...obst.map((o) => o.height)) * 1.2;
+  const fy = (hgt) => H - b - (H - b - t) * Math.min(hgt, maxH) / maxH;
+  // grade e eixos
+  const hStep = [25, 50, 100, 200, 250, 500].find((st) => maxH / st <= 6) || 1000;
+  for (let hh = 0; hh <= maxH; hh += hStep) {
+    svg.append(s("line", { x1: l, y1: fy(hh), x2: W - r, y2: fy(hh), class: "pf-grid" }),
+      s("text", { x: l - 6, y: fy(hh) + 4, class: "pf-tick", "text-anchor": "end", text: kg(hh) }));
+  }
+  const dStep = maxD <= 1500 ? 250 : 500;
+  const ticks = [];
+  for (let d = 0; d <= Math.min(maxD, linear ? maxD : D0); d += dStep) ticks.push(d);
+  if (!linear) for (const d of [5000, 10000, 15000, 20000]) if (d < maxD) ticks.push(d);
+  for (const d of ticks) {
+    svg.append(s("line", { x1: fx(d), y1: H - b, x2: fx(d), y2: H - b + 4, class: "pf-axis" }),
+      s("text", { x: fx(d), y: H - b + 16, class: "pf-tick", "text-anchor": "middle", text: d >= 1000 && d % 1000 === 0 && d > D0 ? `${d / 1000} km` : kg(d) }));
+  }
+  if (!linear) svg.append(s("text", { x: fx(D0) + 6, y: t + 10, class: "pf-note", text: "escala comprimida →" }),
+    s("line", { x1: fx(D0), y1: t, x2: fx(D0), y2: H - b, class: "pf-break" }));
+  svg.append(s("line", { x1: l, y1: H - b, x2: W - r, y2: H - b, class: "pf-axis" }),
+    s("line", { x1: l, y1: t, x2: l, y2: H - b, class: "pf-axis" }),
+    s("text", { x: l - 6, y: t - 4, class: "pf-tick", "text-anchor": "end", text: "ft" }),
+    s("text", { x: W - r, y: H - 6, class: "pf-tick", "text-anchor": "end", text: "m depois do fim da TORA" }),
+    s("text", { x: l + 4, y: H - b - 6, class: "pf-note", text: "fim da TORA" }));
+  if (ext > 0) svg.append(s("line", { x1: fx(ext), y1: t, x2: fx(ext), y2: H - b, class: "pf-toda" }),
+    s("text", { x: fx(ext) + 4, y: t + 22, class: "pf-note", text: "fim da TODA" }));
+  if (showRef) {
+    const pts = [];
+    for (let k = 0; k <= 80; k++) {
+      const d = ext + (maxD - ext) * k / 80;
+      if (refH(d) > maxH) break;
+      pts.push(`${fx(d).toFixed(1)},${fy(refH(d)).toFixed(1)}`);
+    }
+    svg.append(s("polyline", { points: pts.join(" "), class: "pf-ref" }));
+  }
+  if (!obst.length) svg.append(s("text", { x: (l + W - r) / 2, y: (t + H - b) / 2, class: "pf-note", "text-anchor": "middle", text: "Sem obstáculos" }));
+  for (const o of obst) {
+    const x = fx(o.d), y0 = fy(0), y1 = fy(o.height);
+    const warn = showRef && o.on && o.height + 35 > refH(o.d);
+    const cls = `pf-obst${o.on ? "" : " off"}${o.cad == null ? " new" : ""}${warn ? " warn" : ""}`;
+    const tri = s("path", { d: `M${x - 5} ${y0} L${x} ${y1} L${x + 5} ${y0} Z`, class: cls,
+      onclick: () => $(`#rwe-obst tr:nth-child(${o.i + 1}) input[type=number]`)?.focus() },
+      s("title", { text: `Obstáculo ${o.i + 1}: ${kg(o.d)} m${o.cad != null && shift ? ` (cadastro ${kg(o.dist)} + ${kg(shift)})` : ""} · ${kg(o.height)} ft · `
+        + `${o.cad == null ? "novo" : "cadastro"}${o.on ? "" : " · fora do cálculo"}${warn ? " · acima da referência" : ""}` }));
+    svg.append(tri);
+    if (obst.length <= 8 && o.on) svg.append(s("text", { x, y: y1 - 4, class: "pf-label", "text-anchor": "middle", text: kg(o.height) }));
+  }
+}
+try { $("#rwe-ref").checked = localStorage.getItem(REF_STORE) === "1"; } catch (e) { /* sem storage */ }
+$("#rwe-ref").addEventListener("change", (e) => {
+  try { localStorage.setItem(REF_STORE, e.target.checked ? "1" : "0"); } catch (err) { /* sem storage */ }
+  drawProfile();
+});
+
+// ------------------------------------------------------------------ painel das pistas (tela principal)
+/* Um cartao por pista fisica selecionada, assim que a pista e marcada: vista
+ * lateral com a reducao, os sentidos selecionados e os obstaculos de cada
+ * sentido depois do fim da TORA (fora da pista, distancia comprimida). */
+const panelLoading = new Set();
+let sideUid = 0;
+/** Pista como vai para o calculo: reducao + edicoes; obstaculos considerados. */
+function effectiveRunway(item) {
+  const rw = state.airports[item.icao].runways.find((r) => r.rwy === item.rwy);
+  const ov = runwayOverride(item) || {};
+  const obst = (ov.obstacles || obstFromCad(rw.obstacles)).filter((o) => o.on && o.dist != null && o.height != null);
+  return { rw, cuts: cutsFor(item.icao, item.rwy), tora: ov.tora ?? rw.tora, asda: ov.asda ?? rw.asda, toda: ov.toda ?? rw.toda, obst };
+}
+function renderRunwayPanel() {
+  const panel = $("#rw-panel");
+  for (const icao of new Set(state.runways.map((r) => r.icao))) {
+    if (state.airports[icao] || panelLoading.has(icao)) continue;
+    panelLoading.add(icao);
+    getAirport(icao).then(() => renderSelectedRunways()).catch(() => {}).finally(() => panelLoading.delete(icao));
+  }
+  const groups = new Map();       // pista fisica -> { airport, phys, items }
+  for (const item of state.runways) {
+    const airport = state.airports[item.icao];
+    if (!airport || !airport.runways.some((r) => r.rwy === item.rwy)) continue;
+    const phys = physicalRunway(airport, item.rwy);
+    const key = phys ? phys.key : `${item.icao} ${item.rwy}`;
+    if (!groups.has(key)) groups.set(key, { airport, phys, items: [] });
+    groups.get(key).items.push(item);
+  }
+  panel.hidden = !groups.size;
+  panel.replaceChildren(...(groups.size ? [
+    h("header", { class: "rw-panel-head" }, h("h2", { text: "Pistas selecionadas" }),
+      h("small", { class: "muted", text: "Vista lateral em escala; fora da pista a distância é comprimida. ✎ edita a redução, os dados e os obstáculos." })),
+    ...[...groups.values()].map(physCard)] : []));
+}
+function physCard({ airport, phys, items }) {
+  const eff = items.map((it) => ({ it, ...effectiveRunway(it) }));
+  return h("article", { class: "rw-card" },
+    h("div", { class: "rw-card-head" },
+      h("b", { text: `${airport.icao}${airport.iata ? " / " + airport.iata : ""}` }),
+      h("span", { class: "muted", text: phys ? `pista ${phys.a}/${phys.b} · ${kg(phys.L)} m` : `pista ${items[0].rwy}` }),
+      h("span", { class: "grow" }),
+      ...items.map((it) => h("button", { type: "button", class: `mini${isChanged(it) ? " edited" : ""}`,
+        title: `Editar ${runwayId(it)}${isChanged(it) ? ` (${changeText(it)})` : ""}`, text: `✎ ${it.rwy}`, onclick: () => openRunwayEditor(it) }))),
+    drawSideView(phys, eff),
+    h("div", { class: "rw-card-data" }, ...eff.map((e) => h("span", { class: isChanged(e.it) ? "edited" : null },
+      h("b", { text: e.it.rwy }), ` TORA ${kg(e.tora)} · ASDA ${kg(e.asda)} · TODA ${kg(e.toda)} m`
+      + (e.cuts ? ` · redução −${kg(e.cuts.beg + e.cuts.end)} m` : "")
+      + ` · ${e.obst.length ? `${e.obst.length} obstáculo${e.obst.length > 1 ? "s" : ""}` : "sem obstáculos"}`))));
+}
+function drawSideView(phys, eff) {
+  const W = 900, H = 136, pad = 18, GY = 98, K = 250;
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, class: "rw-side", role: "img", "aria-label": "Pista e obstáculos, vista lateral" });
+  const L = phys ? phys.L : eff[0].rw.tora;
+  const xl = W * 0.24, xr = W * 0.76;
+  // obstaculos na coordenada da pista fisica (0 = cabeceira a)
+  const pts = [];
+  for (const e of eff) {
+    const w = phys ? phys.ways[e.it.rwy] : { dir: 1, start: 0 };
+    e.dir = w.dir;
+    e.start = w.start + w.dir * (e.cuts?.beg || 0);
+    const toraEnd = e.start + w.dir * e.tora;
+    for (const o of e.obst) pts.push({ x: toraEnd + w.dir * o.dist, o, e });
+  }
+  const beyondR = Math.max(1, ...pts.map((p) => p.x - L)), beyondL = Math.max(1, ...pts.map((p) => -p.x));
+  const sx = (x) => (x < 0 ? xl - (xl - pad) * Math.log1p(-x / K) / Math.log1p(beyondL / K)
+    : x > L ? xr + (W - pad - xr) * Math.log1p((x - L) / K) / Math.log1p(beyondR / K)
+      : xl + (xr - xl) * x / L);
+  const maxH = Math.max(100, ...pts.map((p) => p.o.height));
+  const hy = (ft) => GY - 60 * ft / maxH;
+  const hatch = `rw-hatch-${++sideUid}`;
+  svg.append(s("defs", {}, s("pattern", { id: hatch, width: 7, height: 7, patternUnits: "userSpaceOnUse", patternTransform: "rotate(45)" },
+    s("rect", { width: 7, height: 7, class: "hatch-bg" }), s("line", { x1: 0, y1: 0, x2: 0, y2: 7, class: "hatch-line" }))));
+  svg.append(s("line", { x1: pad, y1: GY, x2: W - pad, y2: GY, class: "pf-axis" }),
+    s("rect", { x: sx(0), y: GY - 9, width: sx(L) - sx(0), height: 9, class: "rw-strip" }));
+  if (phys) {
+    const closure = state.closures[phys.key] || {};
+    for (const [thr, atStart] of [[phys.a, true], [phys.b, false]]) {
+      const m = Math.min(closure[thr] || 0, L);
+      if (!m) continue;
+      const x1 = sx(atStart ? 0 : L - m), x2 = sx(atStart ? m : L);
+      svg.append(s("rect", { x: x1, y: GY - 9, width: x2 - x1, height: 9, fill: `url(#${hatch})`, class: "rw-closed-p" }),
+        s("text", { x: (x1 + x2) / 2, y: GY + 28, class: "rw-closed-label", "text-anchor": "middle", text: `fechado ${kg(m)} m` }));
+    }
+    svg.append(s("text", { x: sx(0), y: GY + 16, class: "rw-thr", "text-anchor": "middle", text: phys.a }),
+      s("text", { x: sx(L), y: GY + 16, class: "rw-thr", "text-anchor": "middle", text: phys.b }));
+    for (const [name, w] of Object.entries(phys.ways)) {
+      if (!w.inter) continue;
+      svg.append(s("line", { x1: sx(w.start), y1: GY - 12, x2: sx(w.start), y2: GY + 3, class: "rw-inter" }),
+        s("text", { x: sx(w.start), y: GY + 15, class: "rw-inter-label", "text-anchor": "middle", text: name.split("/")[1] }));
+    }
+  }
+  // setas dos sentidos selecionados (acima da pista)
+  for (const e of eff) {
+    const x = sx(e.start), y = e.dir > 0 ? GY - 22 : GY - 36, tip = x + e.dir * 26;
+    svg.append(s("path", { d: `M${x} ${y} L${tip} ${y} M${tip - e.dir * 6} ${y - 5} L${tip} ${y} L${tip - e.dir * 6} ${y + 5}`, class: "rw-arrow" }),
+      s("text", { x: tip + e.dir * 4, y: y + 4, class: "rw-bar-label", "text-anchor": e.dir > 0 ? "start" : "end", text: e.it.rwy }));
+  }
+  // obstaculos (rotulo da altura so quando nao encosta no vizinho; sempre no tooltip)
+  const labels = [];
+  for (const p of [...pts].sort((u, v) => v.o.height - u.o.height)) {
+    const x = sx(p.x), y1 = hy(p.o.height);
+    svg.append(s("path", { d: `M${x - 4} ${GY} L${x} ${y1} L${x + 4} ${GY} Z`, class: `pf-obst${p.o.cad == null ? " new" : ""}`,
+      onclick: () => openRunwayEditor(p.e.it) },
+      s("title", { text: `${p.e.it.rwy}: obstáculo a ${kg(p.o.dist)} m do fim da TORA · ${kg(p.o.height)} ft${p.o.cad == null ? " · novo" : ""}` })));
+    if (labels.some((q) => Math.abs(q.x - x) < 22 && Math.abs(q.y - y1) < 14)) continue;
+    labels.push({ x, y: y1 });
+    svg.append(s("text", { x, y: y1 - 4, class: "pf-label", "text-anchor": "middle", text: kg(p.o.height) }));
+  }
+  if (!pts.length) svg.append(s("text", { x: W / 2, y: 22, class: "pf-note", "text-anchor": "middle", text: "sem obstáculos nas pistas selecionadas" }));
+  return svg;
+}
 
 // ------------------------------------------------------------------ calculo
 const calcBtn = $("#calc-btn");
@@ -793,9 +1170,12 @@ async function runCalc() {
   if (calcBtn.disabled) return;
   const total = totalCount();
   if (total > 300 && !confirm(`São ${nfKg.format(total)} cálculos. Calcular mesmo assim?`)) return;
+  try {                     // a reducao de pista precisa dos dados de cada aeroporto
+    await Promise.all([...new Set(state.runways.map((r) => r.icao))].map(getAirport));
+  } catch (e) { return showCalcError(e.message); }
   const body = {
     selection: [...state.planes].map((id) => { const [i, j] = id.split(":"); return { aircraft: +i, variant: +j }; }),
-    runways: state.runways.map((r) => ({ icao: r.icao, rwy: r.rwy, override: r.edit || null })), ...calcForm.spec(),
+    runways: state.runways.map((r) => ({ icao: r.icao, rwy: r.rwy, override: runwayOverride(r) })), ...calcForm.spec(),
     flaps: Object.fromEntries(chosenModels().filter((a) => a.name in state.flaps).map((a) => [a.name, state.flaps[a.name]])),
     cg: Object.fromEntries(chosenModels().filter((a) => a.name in state.cgs).map((a) => [a.name, state.cgs[a.name]])),
   };
