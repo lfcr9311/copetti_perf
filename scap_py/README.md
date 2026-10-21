@@ -12,6 +12,23 @@ motores de cálculo originais:
 | ATR 72-600 | TTAM (`engines/DllWrapperATR.so`) | direto no Linux, sem Wine |
 | E190, E195, E195-E2 | `takeoff_module.exe` (ETM170 / ETME2) | Wine; não informa V1/VR/V2 |
 
+## Dependências (máquina nova)
+
+Ubuntu/Debian x86_64. Tudo de uma vez, de dentro da pasta `fortran`:
+
+```bash
+sudo bash deploy/instalar_dependencias.sh
+```
+
+| Pacote | Para quê |
+|---|---|
+| `wine`, `wine32:i386`, `wine64` | `scap_octopus.dll` (Airbus), `takeoff_module.exe` e as DLLs da Embraer (Windows 32 bits) |
+| `python3` | o app (só biblioteca padrão) |
+| `libgfortran5` | motor do ATR (`engines/DllWrapperATR.so`) |
+| `gcc-mingw-w64-i686` | compila `engines/scaploader.exe`, o carregador em C das DLLs da Embraer (`engines/compilar.sh`). O `.exe` já vem no Git; o compilador só é preciso para recompilar |
+
+No Docker o carregador é compilado na construção da imagem (etapa `loader` do `Dockerfile`).
+
 ## Abrir o app
 
 ```bash

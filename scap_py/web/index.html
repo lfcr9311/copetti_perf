@@ -24,6 +24,7 @@
     <nav class="tabs" role="tablist" aria-label="Páginas">
       <button role="tab" data-page="calc" aria-selected="true">Cálculo</button>
       <button role="tab" data-page="malha" aria-selected="false">Malha</button>
+      <button role="tab" data-page="pouso" aria-selected="false">Pouso</button>
     </nav>
     <button class="icon-btn" id="theme-toggle" type="button" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro">
       <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
@@ -218,6 +219,84 @@
         <div id="malha-alerts" class="alert-bar" role="group" aria-label="Filtrar por alerta"></div>
         <div id="malha-table" class="table-wrap"></div>
       </div>
+    </main>
+  </section>
+
+  <!-- ============================== POUSO (teste) ============================== -->
+  <section id="page-pouso" class="page" role="tabpanel" hidden>
+    <main class="results">
+      <div class="malha-head">
+        <p class="kicker">Pouso · em teste</p>
+        <h2>Peso máximo de pouso (despacho) · Airbus, Embraer e ATR</h2>
+        <p class="muted">Um cálculo por vez: Airbus pelo <code>scap_octopus.dll</code>, E195 pela <code>ELM170</code>, E195-E2 pelo <code>ELME2</code>, ATR pelo <code>TLAM</code> (programa oficial da ATR, com licença). O <code>airports_list.csv</code> não tem LDA:
+          ela começa igual à TORA da pista e pode ser ajustada. Todos os campos podem ser alterados.</p>
+      </div>
+      <div class="pouso-layout">
+        <form class="surface pouso-form" id="ld-form" novalidate>
+          <fieldset><legend>Aeronave</legend>
+            <div class="pouso-row">
+              <label class="field"><span>Aeronave</span><select id="ld-ac"></select></label>
+              <label class="field"><span>Motor</span><select id="ld-var"></select></label>
+            </div>
+          </fieldset>
+          <fieldset><legend>Pista</legend>
+            <div class="pouso-row">
+              <label class="field"><span>Aeroporto (ICAO)</span>
+                <input id="ld-icao" list="ld-airports" autocomplete="off" spellcheck="false" placeholder="ex. SBRJ"></label>
+              <label class="field"><span>Pista</span><select id="ld-rwy"></select></label>
+            </div>
+            <div class="pouso-row three">
+              <label class="field"><span>LDA (m)</span><input id="ld-lda" type="number" step="1" required></label>
+              <label class="field"><span>Elevação (ft)</span><input id="ld-elev" type="number" step="1" required></label>
+              <label class="field"><span>Slope (%)</span><input id="ld-slope" type="number" step="0.01" required></label>
+            </div>
+            <p class="hint" id="ld-rwy-info"></p>
+          </fieldset>
+          <fieldset><legend>Condições</legend>
+            <div class="pouso-row five">
+              <label class="field"><span>Temperatura (°C)</span><input id="ld-temp" type="number" step="1" value="25" required></label>
+              <label class="field"><span>QNH (hPa)</span><input id="ld-qnh" type="number" step="0.01" value="1013.25" required></label>
+              <label class="field"><span>Vento (kt)</span><input id="ld-vento" type="number" step="1" value="0" required title="+ proa, − cauda" placeholder="+ proa / − cauda"></label>
+              <label class="field"><span>Pista</span><select id="ld-molhada">
+                <option value="0">Seca</option><option value="1">Molhada</option></select></label>
+              <label class="field"><span>Superfície <small class="muted">RWYDL(4)</small></span><select id="ld-grooved">
+                <option value="0">Normal</option><option value="1">Grooved / PFC</option></select></label>
+            </div>
+          </fieldset>
+          <fieldset><legend>Configuração</legend>
+            <div class="pouso-row four">
+              <label class="field" data-fab="airbus"><span>Técnica de pouso</span><select id="ld-athr">
+                <option value="1" title="VAPP = VREF + 5 kt">A/THR on (+5 kt)</option><option value="0" title="VAPP = VREF">A/THR off</option></select></label>
+              <label class="field"><span>Flap de pouso</span><select id="ld-conf"></select></label>
+              <label class="field"><span>Código do pouso <small class="muted" id="ld-cpouso-ref">CONFL(4)</small></span><input id="ld-cpouso" type="number" step="1" required></label>
+              <label class="field"><span>Código da arremetida <small class="muted" id="ld-carr-ref">CONFL(2)</small></span><input id="ld-carr" type="number" step="1" required></label>
+            </div>
+            <div class="pouso-row four">
+              <label class="field"><span>Reverso</span><select id="ld-reverso">
+                <option value="0">Sem crédito</option><option value="1">Crédito (todos)</option></select></label>
+              <label class="field"><span>Anti-ice</span><select id="ld-antigelo">
+                <option value="0">OFF</option><option value="1" data-fab="airbus">Motor</option><option value="3" data-fab="airbus embraer">Motor e asa</option><option value="6" data-fab="atr" hidden>Condição de gelo</option></select></label>
+              <label class="field" data-fab="embraer" hidden><span>Autobrake</span><select id="ld-autobrake">
+                <option value="0">OFF</option><option value="1">LOW</option><option value="2">MED</option><option value="3">HI</option></select></label>
+              <label class="field" data-fab="embraer" hidden><span>Incremento VREF (kt)</span><input id="ld-vrefinc" type="number" step="1" value="0"></label>
+              <label class="field" data-fab="airbus"><span>Ar-condicionado</span><select id="ld-ar">
+                <option value="2">OFF</option><option value="1">ON</option></select></label>
+              <label class="field"><span>MLW (kg) <small class="muted">vazio = máx. da base</small></span><input id="ld-mlw" type="number" step="1"></label>
+            </div>
+            <div class="pouso-row">
+              <label class="field"><span>Gradiente de arremetida exigido (%) <small class="muted">vazio = STD</small></span>
+                <input id="ld-ga" type="number" step="0.1" placeholder="STD (regulamento)"></label>
+              <label class="field"><span>Peso de pouso LW (kg) <small class="muted">gradiente e VAPP nesse peso</small></span>
+                <input id="ld-lw" type="number" step="100" placeholder="opcional"></label>
+            </div>
+          </fieldset>
+          <button class="primary" type="submit" id="ld-btn">Calcular pouso</button>
+        </form>
+        <section class="surface pouso-result" id="ld-result" aria-live="polite">
+          <p class="muted">Preencha os campos e clique em <b>Calcular pouso</b>.</p>
+        </section>
+      </div>
+      <datalist id="ld-airports"></datalist>
     </main>
   </section>
 

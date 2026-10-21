@@ -31,6 +31,9 @@ from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
 import malha
+import pouso_airbus
+import pouso_atr
+import pouso_embraer
 import scap_engine
 from aircraft import AIRCRAFT, flap_options
 from airports import MAX_OBSTACLES, align_values, load_airports, load_toalign
@@ -615,6 +618,117 @@ def malha_job(body):
     return start_job("malha", work)
 
 
+# ---------------------------------------------------------------- pouso (teste)
+
+def pouso_meta():
+    """Aeronaves com pouso (Airbus pelo scap_octopus, E195 pela ELM170) e as
+    configuracoes de pouso conhecidas."""
+    out = []
+    for i, ac in enumerate(AIRCRAFT):
+        if ac.engine == "octopus":
+            fab, confs = "airbus", pouso_airbus.CONF_POUSO.get(ac.actype, {})
+        elif ac.name in pouso_embraer.MODELOS:
+            fab, confs = "embraer", pouso_embraer.FLAPS_MODELO[ac.name]
+        elif ac.engine == "ttam":
+            fab, confs = "atr", pouso_atr.FLAPS
+        else:
+            continue
+        out.append({"id": i, "name": ac.name, "fabricante": fab,
+                    "variants": [{"id": j, "label": v.display} for j, v in enumerate(ac.variants)],
+                    "confs": [{"name": n, "pouso": c[0], "arremetida": c[1]} for n, c in confs.items()]})
+    return {"aircraft": out}
+
+
+def pouso_calc(body):
+    """Um calculo de pouso (despacho) do Airbus, sincrono."""
+    try:
+        ac = AIRCRAFT[int(body["aircraft"])]
+        v = ac.variants[int(body["variant"])]
+    except (KeyError, IndexError, ValueError, TypeError):
+        raise BadRequest("Escolha a aeronave e o motor")
+    embraer = ac.name in pouso_embraer.MODELOS
+    atr = ac.engine == "ttam"
+    if ac.engine != "octopus" and not embraer and not atr:
+        raise BadRequest(f"Pouso ainda não disponível para {ac.name}")
+    campos = {  # campo -> (nome, minimo, maximo)
+        "lda": ("LDA", 300, 6000), "elev": ("Elevação", -2000, 16000),
+        "slope": ("Slope", -5, 5), "temp": ("Temperatura", -60, 60),
+        "qnh": ("QNH", 900, 1100), "vento": ("Vento", -30, 60),
+        "conf_pouso": ("Código do pouso", 0, 9999),
+        "conf_arremetida": ("Código da arremetida", 0, 9999)}
+    valores = {}
+    for chave, (nome, lo, hi) in campos.items():
+        x = number(body.get(chave), nome)
+        if not lo <= x <= hi:
+            raise BadRequest(f"{nome} fora da faixa ({lo} a {hi}): {x:g}")
+        valores[chave] = x
+    def opcional(chave, nome, lo, hi):
+        if body.get(chave) in (None, ""):
+            return None
+        x = number(body[chave], nome)
+        if not lo <= x <= hi:
+            raise BadRequest(f"{nome} fora da faixa ({lo} a {hi}): {x:g}")
+        return x
+    mlw = opcional("mlw", "MLW", 10000, 400000)
+    lw = opcional("lw", "Peso de pouso (LW)", 10000, 400000)
+    ga = opcional("ga_grad", "Gradiente de arremetida", 0.1, 20)
+    opcoes = {"reverso": (0, 1), "ar": (1, 2),
+              "antigelo": (0, 6) if atr else (0, 3) if embraer else (0, 1, 3)}
+    for chave, validos in opcoes.items():
+        x = int(number(body.get(chave, validos[0]), chave))
+        if x not in validos:
+            raise BadRequest(f"Valor inválido para {chave}: {x}")
+        valores[chave] = x
+    if atr:
+        rating = v.rating.upper()
+        p = pouso_atr.PousoATR(
+            lda=valores["lda"], elev=valores["elev"], slope=valores["slope"],
+            temp=valores["temp"], qnh=valores["qnh"], vento=valores["vento"],
+            molhada=bool(body.get("molhada")),
+            flap_pouso=int(valores["conf_pouso"]), flap_arremetida=int(valores["conf_arremetida"]),
+            reverso=valores["reverso"], icing=valores["antigelo"] == 6,
+            boost=2 if "BOOSTON" in rating else 1 if "BOOSTOFF" in rating else 0,
+            motor=v.engtyp.replace("_M", ""), mlw=mlw, ga_grad=ga)
+        try:
+            r = pouso_atr.calcular(p)
+            no_lw = pouso_atr.calcular(dataclasses.replace(p, mlw=lw)) if lw else None
+        except (pouso_atr.PousoError, scap_engine.ScapError) as e:
+            raise BadRequest(str(e))
+    elif embraer:
+        autobrake = int(number(body.get("autobrake", 0), "Autobrake"))
+        inc = number(body.get("vref_inc") or 0, "Incremento na VREF")
+        if autobrake not in (0, 1, 2, 3) or not 0 <= inc <= 20:
+            raise BadRequest("Autobrake ou incremento na VREF inválido")
+        p = pouso_embraer.PousoE(
+            lda=valores["lda"], elev=valores["elev"], slope=valores["slope"],
+            temp=valores["temp"], qnh=valores["qnh"], vento=valores["vento"],
+            molhada=bool(body.get("molhada")), grooved=bool(body.get("grooved")),
+            flap_pouso=int(valores["conf_pouso"]), flap_arremetida=int(valores["conf_arremetida"]),
+            reverso=valores["reverso"], antigelo=valores["antigelo"], autobrake=autobrake,
+            vref_inc=inc, mlw=mlw, ga_grad=ga)
+        try:
+            r = pouso_embraer.calcular(ac.name, p)
+            # no LW: o E2 tem o modo "distancias no peso" (POPTL(1)=1); o E1
+            # sempre calcula os limites, entao o LW entra como peso maximo
+            e2 = pouso_embraer.MODELOS[ac.name]["tipo"] == "e2"
+            no_lw = pouso_embraer.calcular(ac.name, dataclasses.replace(p, **({"peso": lw} if e2 else {"mlw": lw}))) if lw else None
+        except (pouso_embraer.PousoError, scap_engine.ScapError) as e:
+            raise BadRequest(str(e))
+    else:
+        p = pouso_airbus.Pouso(**valores, molhada=bool(body.get("molhada")), mlw=mlw,
+                               athr=body.get("athr", True) not in (False, 0, "0", "off"),
+                               grooved=bool(body.get("grooved")), ga_grad=ga)
+        try:
+            r = pouso_airbus.calcular(v, p)
+            no_lw = pouso_airbus.calcular(v, dataclasses.replace(p, peso=lw)) if lw else None
+        except (pouso_airbus.PousoError, scap_engine.ScapError) as e:
+            raise BadRequest(str(e))
+    if no_lw:
+        no_lw = {k: no_lw[k] for k in ("gradiente_arremetida", "gradiente_pouso", "vapp",
+                                       "v_arremetida", "ld", "ld_exigida", "erflag", "mensagens")}
+    return {**r, "lw": lw, "no_lw": no_lw, "aircraft": ac.name, "engine": v.display}
+
+
 def open_local(path):
     if platform.system() == "Windows":
         os.startfile(path)
@@ -712,6 +826,8 @@ class Handler(BaseHTTPRequestHandler):
             if parts[0] == "api":
                 if parts[1:] == ["meta"]:
                     return self.send_json(meta())
+                if parts[1:] == ["pouso", "meta"]:
+                    return self.send_json(pouso_meta())
                 if len(parts) == 3 and parts[1] == "airport":
                     return self.send_json(airport(parts[2]))
                 if len(parts) == 3 and parts[1] == "job":
@@ -742,6 +858,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(calc_job(body))
             if parts == ["api", "malha"]:
                 return self.send_json(malha_job(body))
+            if parts == ["api", "pouso"]:
+                return self.send_json(pouso_calc(body))
             if parts == ["api", "open"]:
                 if SERVER_MODE:
                     raise BadRequest("No servidor, use o botão de download")
