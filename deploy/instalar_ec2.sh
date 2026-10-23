@@ -86,10 +86,13 @@ apt-get install -y -q \
     ca-certificates curl gzip rsync tmux procps psmisc \
     python3 libgfortran5 \
     wine wine32:i386 wine64 \
+    gcc-mingw-w64-i686 \
     nginx
 ok "python3 $(python3 -c 'import platform; print(platform.python_version())')"
 ok "$(wine --version 2>/dev/null || echo 'wine instalado')"
 ok "nginx $(nginx -v 2>&1 | sed 's/.*\///')"
+sudo -u "${SUDO_USER:-root}" bash "$(cd "$(dirname "$0")/.." && pwd)/scap_py/engines/compilar.sh" \
+    && ok "scaploader.exe (carregador das DLLs da Embraer) compilado"
 
 PY_OK=$(python3 -c 'import sys; print(int(sys.version_info >= (3, 8)))')
 [ "$PY_OK" = 1 ] || falha "O Python precisa ser 3.8 ou mais novo."

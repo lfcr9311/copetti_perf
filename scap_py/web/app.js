@@ -1956,136 +1956,230 @@ new ResizeObserver(() => {
   resizeTimer = setTimeout(() => { if (state.result && state.chart && state.view === "chart" && !$("#r-views").hidden) renderChart(); }, 120);
 }).observe($("#chart"));
 
-// ------------------------------------------------------------------ pouso (teste)
-/* Um calculo de pouso (despacho) do Airbus por vez, com valores unicos. Tudo
- * editavel; a pista preenche LDA (= TORA), elevacao e slope do cadastro. */
+// ------------------------------------------------------------------ pouso
+/* Um calculo de pouso (despacho) por vez, com valores unicos. Mesma cara da
+ * decolagem: consulta a esquerda (aeronave, pista, condicoes, configuracao),
+ * resultado a direita (peso, limitante, desenho da distancia, limites). */
 const LD_STORE = "perf.pouso";
-const ld = { meta: null, ready: false };
+const ld = { meta: null, ready: false, v: {}, airport: null };
 const ldEl = (id) => $(`#ld-${id}`);
-const LD_FIELDS = ["icao", "lda", "elev", "slope", "temp", "qnh", "vento", "molhada", "grooved", "athr", "cpouso", "carr", "reverso", "antigelo", "ar", "autobrake", "vrefinc", "mlw", "ga", "lw"];
+const LD_INPUTS = ["icao", "lda", "elev", "slope", "temp", "qnh", "vento", "cpouso", "carr", "mlw", "ga", "lw", "vrefinc"];
+const LD_DEFAULTS = { molhada: "0", grooved: "0", athr: "1", reverso: "0", antigelo: "0", ar: "2", autobrake: "0", conf: "" };
 
 async function initPouso() {
   if (ld.ready) return;
-  try { ld.meta = await api("/api/pouso/meta"); } catch (e) { return ldResult(ldError(e.message)); }
+  try { ld.meta = await api("/api/pouso/meta"); } catch (e) { return ldShow("error", e.message); }
   ld.ready = true;
-  ldEl("ac").replaceChildren(...ld.meta.aircraft.map((a) => h("option", { value: a.id, text: a.name })));
   $("#ld-airports").replaceChildren(...(state.meta?.airports || []).map((a) =>
     h("option", { value: a.icao, text: `${a.iata ? a.iata + " · " : ""}${a.name}` })));
-  const saved = load(LD_STORE, null);
-  if (saved && ld.meta.aircraft.some((a) => String(a.id) === saved.ac)) ldEl("ac").value = saved.ac;
-  ldFillAircraft(saved?.var, saved?.conf);
-  if (saved) {
-    for (const k of LD_FIELDS) if (saved[k] != null) ldEl(k).value = saved[k];
-    if (saved.icao) await ldLoadAirport(saved.icao, saved.rwy, false);
-  } else {
-    ldEl("icao").value = "SBRJ";
-    await ldLoadAirport("SBRJ", "20L", true);
-  }
+  const saved = load(LD_STORE, null) || {};
+  ld.v = { ...LD_DEFAULTS, ...(saved.v || {}) };
+  const ac = ld.meta.aircraft.find((a) => String(a.id) === String(saved.ac)) || ld.meta.aircraft[0];
+  ldPick(ac.id, saved.var ?? ac.variants[0].id, saved.v?.conf);
+  for (const k of LD_INPUTS) if (saved[k] != null && saved[k] !== "") ldEl(k).value = saved[k];
+  const icao = saved.icao || "SBRJ";
+  ldEl("icao").value = icao;
+  await ldLoadAirport(icao, saved.rwy || "20L", !saved.lda);
+  ldRender();
 }
-function ldAircraft() { return ld.meta.aircraft.find((a) => String(a.id) === ldEl("ac").value); }
-function ldFillAircraft(variant, conf) {
-  const a = ldAircraft();
-  // campos que so existem num fabricante (Airbus: A/THR, ar-cond.; Embraer: autobrake, VREF)
-  for (const el of $("#ld-form").querySelectorAll("[data-fab]")) el.hidden = !el.dataset.fab.split(" ").includes(a.fabricante);
-  if (ldEl("antigelo").selectedOptions[0]?.hidden) ldEl("antigelo").value = "0";
-  ldEl("cpouso-ref").textContent = a.fabricante === "airbus" ? "CONFL(4)" : "CONFL(5)";
-  ldEl("carr-ref").textContent = a.fabricante === "airbus" ? "CONFL(2)" : "CONFL(3)";
-  ldEl("var").replaceChildren(...a.variants.map((v) => h("option", { value: v.id, text: v.label })));
-  if (variant != null && a.variants.some((v) => String(v.id) === String(variant))) ldEl("var").value = variant;
-  ldEl("conf").replaceChildren(...a.confs.map((c) => h("option", { value: c.name, text: `${a.fabricante === "airbus" ? "CONF" : "FLAP"} ${c.name}` })),
-    h("option", { value: "", text: "Outro (códigos)" }));
-  ldEl("conf").value = conf != null && (conf === "" || a.confs.some((c) => c.name === conf)) ? conf : (a.confs[0]?.name ?? "");
+const ldAircraft = () => ld.meta.aircraft.find((a) => a.id === ld.v.ac);
+
+/** Escolhe aeronave/motor e ajusta o que depende do fabricante. */
+function ldPick(acId, varId, conf) {
+  const a = ld.meta.aircraft.find((x) => x.id === acId);
+  ld.v.ac = a.id;
+  ld.v.var = a.variants.some((v) => v.id === varId) ? varId : a.variants[0].id;
+  ld.v.conf = conf != null && (conf === "" || a.confs.some((c) => c.name === conf)) ? conf
+    : (a.confs.find((c) => c.name === "FULL") || a.confs[0])?.name ?? "";   // FULL quando existir
+  const anti = ldOptions().antigelo.map(([k]) => k);
+  if (!anti.includes(ld.v.antigelo)) ld.v.antigelo = "0";
+  if (a.fabricante === "atr") ld.v.reverso = "0";
   ldApplyConf();
+  ldRender();
 }
 function ldApplyConf() {
-  const c = ldAircraft().confs.find((x) => x.name === ldEl("conf").value);
+  const c = ldAircraft().confs.find((x) => x.name === ld.v.conf);
   if (c) { ldEl("cpouso").value = c.pouso; ldEl("carr").value = c.arremetida; }
   ldEl("cpouso").readOnly = ldEl("carr").readOnly = !!c;
+}
+/** Opcoes de cada escolha, conforme o fabricante. */
+function ldOptions() {
+  const a = ldAircraft(), fab = a.fabricante;
+  return {
+    conf: [...a.confs.map((c) => [c.name, `${fab === "airbus" ? "CONF" : "FLAP"} ${c.name}`]), ["", "Outro"]],
+    molhada: [["0", "Seca"], ["1", "Molhada"]],
+    grooved: [["0", "Normal"], ["1", "Grooved / PFC"]],
+    athr: [["1", "A/THR on (+5 kt)"], ["0", "A/THR off"]],
+    reverso: fab === "atr" ? [["0", "Sem crédito"]] : [["0", "Sem crédito"], ["1", "Crédito"]],
+    antigelo: fab === "atr" ? [["0", "OFF"], ["6", "Condição de gelo"]]
+      : fab === "embraer" ? [["0", "OFF"], ["3", "Motor e asa"]] : [["0", "OFF"], ["1", "Motor"], ["3", "Motor e asa"]],
+    autobrake: [["0", "OFF"], ["1", "LOW"], ["2", "MED"], ["3", "HI"]],
+    ar: [["2", "OFF"], ["1", "ON"]],
+  };
+}
+function ldRender() {
+  if (!ld.ready) return;
+  const a = ldAircraft(), opts = ldOptions();
+  // aeronaves: modelo + motores (como na decolagem), uma escolha so
+  $("#ld-planes").replaceChildren(...ld.meta.aircraft.map((m) => h("div", { class: "plane-row" },
+    h("button", { class: `model-btn${m.id === a.id ? " on" : ""}`, type: "button", onclick: () => ldPick(m.id, m.variants[0].id) },
+      m.name, h("small", { text: { airbus: "Airbus", embraer: "Embraer", atr: "ATR" }[m.fabricante] })),
+    h("div", { class: "pills" }, m.variants.map((v) => h("button", {
+      class: "pill", type: "button", text: v.label, "aria-pressed": m.id === a.id && v.id === ld.v.var,
+      onclick: () => ldPick(m.id, v.id),
+    }))))));
+  // escolhas segmentadas
+  for (const box of document.querySelectorAll("#ld-form .ld-choice")) {
+    const key = box.dataset.key, list = opts[key];
+    box.hidden = !!box.dataset.fab && box.dataset.fab !== a.fabricante;
+    box.replaceChildren(h("span", { text: box.dataset.label }),
+      h("div", { class: "seg full" }, list.map(([k, text]) => h("button", {
+        type: "button", text, "aria-pressed": String(ld.v[key]) === k,
+        onclick: () => { ld.v[key] = k; if (key === "conf") ldApplyConf(); ldRender(); },
+      }))));
+  }
+  for (const el of document.querySelectorAll("#ld-form .ld-field[data-fab]")) el.hidden = el.dataset.fab !== a.fabricante;
+  ldEl("cpouso-ref").textContent = a.fabricante === "airbus" ? "CONFL(4)" : "CONFL(5)";
+  ldEl("carr-ref").textContent = a.fabricante === "airbus" ? "CONFL(2)" : "CONFL(3)";
+  ldRenderRunways();
+  const v = a.variants.find((x) => x.id === ld.v.var);
+  const conf = opts.conf.find(([k]) => k === ld.v.conf)?.[1] || "códigos";
+  ldEl("summary").replaceChildren(h("b", { text: `${a.name} ${v.label}` }),
+    ` · ${ldEl("icao").value.toUpperCase() || "?"} ${ld.v.rwy || ""} · ${conf} · ${ld.v.molhada === "1" ? "molhada" : "seca"}`);
 }
 async function ldLoadAirport(icao, rwy, fill = true) {
   icao = icao.trim().toUpperCase();
   if (!/^[A-Z0-9]{4}$/.test(icao)) return;
-  let a;
-  try { a = await getAirport(icao); } catch (e) { ldEl("rwy").replaceChildren(); ldEl("rwy-info").textContent = e.message; return; }
-  ldEl("rwy").replaceChildren(...a.runways.map((r) => h("option", { value: r.rwy, text: r.rwy })));
-  if (rwy && a.runways.some((r) => r.rwy === rwy)) ldEl("rwy").value = rwy;
-  ldRunwayInfo(fill);
+  try { ld.airport = await getAirport(icao); } catch (e) { ld.airport = null; ldEl("rwy-info").textContent = e.message; ldRenderRunways(); return; }
+  ld.v.rwy = ld.airport.runways.some((r) => r.rwy === rwy) ? rwy : ld.airport.runways[0]?.rwy;
+  ldRunwayFill(fill);
+  ldRender();
 }
-function ldRunwayInfo(fill) {
-  const a = state.airports[ldEl("icao").value.trim().toUpperCase()];
-  const r = a?.runways.find((x) => x.rwy === ldEl("rwy").value);
+function ldRunway() { return ld.airport?.runways.find((r) => r.rwy === ld.v.rwy); }
+function ldRenderRunways() {
+  const a = ld.airport;
+  ldEl("runways").replaceChildren(...(a ? a.runways.map((r) => h("button", {
+    class: "pill", type: "button", "aria-pressed": r.rwy === ld.v.rwy,
+    title: `TORA ${kg(r.tora)} m · elev. ${kg(r.elev)} ft · slope ${num(r.slope)}%`,
+    onclick: () => { ld.v.rwy = r.rwy; ldRunwayFill(true); ldRender(); },
+  }, r.rwy, h("small", { text: kg(r.tora) }))) : []));
+}
+function ldRunwayFill(fill) {
+  const r = ldRunway();
   if (!r) return;
   if (fill) {
     ldEl("lda").value = r.tora; ldEl("elev").value = r.elev; ldEl("slope").value = r.slope;
-    ldEl("grooved").value = /GROOVED/i.test(r.surface) ? "1" : "0";
+    ld.v.grooved = /GROOVED/i.test(r.surface) ? "1" : "0";
   }
-  ldEl("rwy-info").textContent = `${a.name} · cadastro: TORA ${kg(r.tora)} · TODA ${kg(r.toda)} · ASDA ${kg(r.asda)} m · `
-    + `elev. ${kg(r.elev)} ft · slope ${num(r.slope)}% · ${/GROOVED/i.test(r.surface) ? "grooved" : "normal"} (a LDA começa igual à TORA)`;
+  ldEl("rwy-info").textContent = `${ld.airport.name} · cadastro: TORA ${kg(r.tora)} · TODA ${kg(r.toda)} · ASDA ${kg(r.asda)} m · `
+    + `elev. ${kg(r.elev)} ft · slope ${num(r.slope)}% · ${/GROOVED/i.test(r.surface) ? "grooved" : "normal"}`;
 }
-ldEl("ac").addEventListener("change", () => ldFillAircraft());
-ldEl("conf").addEventListener("change", ldApplyConf);
 ldEl("icao").addEventListener("change", () => ldLoadAirport(ldEl("icao").value, null, true));
-ldEl("rwy").addEventListener("change", () => ldRunwayInfo(true));
+ldEl("icao").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); ldLoadAirport(ldEl("icao").value, null, true); } });
+
+function ldShow(which, msg) {
+  for (const k of ["empty", "loading", "error", "out"]) ldEl(k).hidden = k !== which;
+  if (which === "error") ldEl("error").replaceChildren(h("strong", { text: "Não foi possível calcular" }), msg);
+}
 ldEl("form").addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!ld.ready || ldEl("btn").disabled) return;
-  const body = { aircraft: ldEl("ac").value, variant: ldEl("var").value, molhada: ldEl("molhada").value === "1",
+  const a = ldAircraft();
+  const body = { aircraft: a.id, variant: ld.v.var, molhada: ld.v.molhada === "1", grooved: ld.v.grooved === "1",
+    athr: ld.v.athr === "1", reverso: ld.v.reverso, antigelo: ld.v.antigelo, ar: ld.v.ar, autobrake: ld.v.autobrake,
     lda: ldEl("lda").value, elev: ldEl("elev").value, slope: ldEl("slope").value, temp: ldEl("temp").value,
     qnh: ldEl("qnh").value, vento: ldEl("vento").value, conf_pouso: ldEl("cpouso").value, conf_arremetida: ldEl("carr").value,
-    reverso: ldEl("reverso").value, antigelo: ldEl("antigelo").value, ar: ldEl("ar").value, mlw: ldEl("mlw").value,
-    athr: ldEl("athr").value === "1", grooved: ldEl("grooved").value === "1",
-    ga_grad: ldEl("ga").value, lw: ldEl("lw").value,
-    autobrake: ldEl("autobrake").value, vref_inc: ldEl("vrefinc").value };
-  save(LD_STORE, { ac: ldEl("ac").value, var: ldEl("var").value, conf: ldEl("conf").value, rwy: ldEl("rwy").value,
-    ...Object.fromEntries(LD_FIELDS.map((k) => [k, ldEl(k).value])) });
+    mlw: ldEl("mlw").value, ga_grad: ldEl("ga").value, lw: ldEl("lw").value, vref_inc: ldEl("vrefinc").value };
+  save(LD_STORE, { ac: a.id, var: ld.v.var, rwy: ld.v.rwy, v: { ...ld.v }, ...Object.fromEntries(LD_INPUTS.map((k) => [k, ldEl(k).value])) });
   ldEl("btn").disabled = true; ldEl("btn").textContent = "Calculando…";
-  ldResult(h("div", { class: "pouso-wait" }, h("div", { class: "spinner", "aria-hidden": "true" }), "Calculando…"));
+  ldShow("loading");
   try {
-    ldResult(...ldRender(await api("/api/pouso", body), body));
+    ldResultado(await api("/api/pouso", body), body);
   } catch (err) {
-    ldResult(ldError(err.message));
+    ldShow("error", err.message);
   } finally {
     ldEl("btn").disabled = false; ldEl("btn").textContent = "Calcular pouso";
   }
 });
-const ldResult = (...nodes) => $("#ld-result").replaceChildren(...nodes);
-const ldError = (msg) => h("div", { class: "state-card error" }, h("strong", { text: "Não foi possível calcular" }), msg);
-function ldRender(r, body) {
-  const fmt = (v) => (v == null ? "–" : Math.abs(v) >= 100 ? nfKg.format(Math.round(v)) : num(v));
-  const head = r.mlw != null
-    ? h("div", { class: "pouso-hero" }, h("p", { class: "kicker", text: "Peso máximo de pouso" }),
-      h("p", { class: "pouso-mlw" }, nfKg.format(Math.round(r.mlw)), h("small", { text: " kg" })),
-      h("p", { class: "pouso-lim", text: r.limitante ? `Limitado por: ${r.limitante}` : "Limitante não identificado" }))
-    : h("div", { class: "state-card error" }, h("strong", { text: "O motor não devolveu peso de pouso" }),
-      "Veja as mensagens abaixo (pista curta demais em pista molhada costuma dar este erro).");
-  const pct = (v) => (v == null ? "–" : `${num(v)} %`), kt = (v) => (v == null ? "–" : `${Math.round(v)} kt`);
-  const tile = (label, value, note) => h("div", { class: "pouso-tile" }, h("span", { text: label }), h("b", { text: value }),
-    note ? h("small", { text: note }) : null);
-  const grads = h("div", { class: "pouso-grads" },
-    h("p", { class: "kicker", text: r.mlw != null ? `No peso máximo de pouso (${nfKg.format(Math.round(r.mlw))} kg)` : "Gradientes" }),
-    h("div", { class: "pouso-tiles" },
-      tile("Gradiente de arremetida", pct(r.gradiente_arremetida), `motor inop. · exigido ${body.ga_grad ? `${body.ga_grad} %` : "STD"}`),
+
+function ldResultado(r, body) {
+  const a = ldAircraft(), opts = ldOptions(), rw = ldRunway();
+  const pct = (x) => (x == null ? "–" : `${num(x)} %`), kt = (x) => (x == null ? "–" : `${Math.round(x)} kt`), m = (x) => (x == null ? "–" : `${kg(x)} m`);
+  const flap = opts.conf.find(([k]) => k === ld.v.conf)?.[1] || `${body.conf_pouso}/${body.conf_arremetida}`;
+  ldEl("title").textContent = `${ldEl("icao").value.toUpperCase()} · pista ${ld.v.rwy || "?"}${ld.airport ? ` · ${ld.airport.name}` : ""}`;
+  const tag = (label, value) => h("span", {}, label, h("b", { text: value }));
+  ldEl("tags").replaceChildren(tag("Aeronave", `${r.aircraft} ${r.engine}`), tag("LDA", `${kg(+body.lda)} m`),
+    h("span", { text: body.molhada ? `molhada${body.grooved ? " grooved" : ""}` : "seca" }), h("span", { text: `${plain(+body.temp)} °C` }),
+    h("span", { text: +body.vento ? windText(+body.vento) : "sem vento" }), h("span", { text: `QNH ${plain(+body.qnh)}` }),
+    tag("Flap", flap), ...(a.fabricante === "airbus" ? [h("span", { text: body.athr ? "A/THR on (+5 kt)" : "A/THR off" })] : []),
+    ...(+body.reverso ? [h("span", { text: "com reverso" })] : []));
+  // destaque, como o MTOW da decolagem
+  const tile = (label, value, cls) => h("dl", { class: `tile${cls ? " " + cls : ""}` }, h("dt", { text: label }), h("dd", { text: value }));
+  ldEl("hero").replaceChildren(
+    h("div", {}, h("div", { class: "hero-value" }, r.mlw == null ? "–" : kg(r.mlw), h("small", { text: "kg" })),
+      h("p", { class: "hero-label", text: "Peso máximo de pouso (despacho)" })),
+    h("div", { class: "hero-side" },
+      tile("Limitado por", r.limitante || "–", "wide"), tile("Flap", flap),
+      tile(a.fabricante === "airbus" ? "VAPP" : "VREF", kt(r.vapp)), tile("Gradiente de arremetida", pct(r.gradiente_arremetida)),
       tile("Gradiente de subida de pouso", pct(r.gradiente_pouso)),
-      tile("VAPP", kt(r.vapp)), tile("Velocidade na arremetida", kt(r.v_arremetida))),
-    r.no_lw ? [h("p", { class: "kicker", text: `No peso de pouso informado (LW ${nfKg.format(Math.round(r.lw))} kg)` }),
-      h("div", { class: "pouso-tiles" },
-        tile("Gradiente de arremetida", pct(r.no_lw.gradiente_arremetida), "motor inop."),
-        tile("Gradiente de subida de pouso", pct(r.no_lw.gradiente_pouso)),
-        tile("VAPP", kt(r.no_lw.vapp)),
-        tile("Distância de pouso", r.no_lw.ld == null ? "–" : `${kg(r.no_lw.ld)} m`, r.no_lw.ld_exigida == null ? null : `exigida ${kg(r.no_lw.ld_exigida)} m`))] : null);
-  return [
-    h("p", { class: "muted pouso-sub", text: `${r.aircraft} ${r.engine} · LDA ${kg(+body.lda)} m · ${plain(+body.temp)} °C · `
-      + `QNH ${plain(+body.qnh)} · ${+body.vento ? `vento ${windText(+body.vento)}` : "sem vento"} · ${body.molhada ? "molhada" : "seca"}${body.grooved ? " grooved" : ""} · `
-      + `${{ embraer: `VREF + ${+body.vref_inc || 0} kt · `, airbus: body.athr ? "MAN-A/THR on (VREF + 5 kt) · " : "MAN-A/THR off · ", atr: "" }[ldAircraft().fabricante] || ""}pouso ${body.conf_pouso} / arremetida ${body.conf_arremetida}` }),
-    head,
-    grads,
-    h("table", { class: "data pouso-table" }, h("tbody", {}, ...Object.entries(r.principal).map(([k, v]) =>
-      h("tr", {}, h("td", { text: k }), h("td", { class: "r", text: fmt(v) }))))),
-    h("p", { class: "pouso-flag" }, "ERFLAG ", h("b", { text: r.erflag || "?" }),
-      r.erflag === "A" ? " · cálculo normal" : r.erflag === "D" ? " · cálculo com aviso" : " · erro"),
-    r.mensagens.length ? h("ul", { class: "pouso-msgs" }, ...r.mensagens.map((m) => h("li", { text: m }))) : null,
-    h("details", { class: "pouso-in" }, h("summary", { text: "Entrada enviada (scap.in)" }), h("pre", { text: r.entrada })),
-  ];
+      ...(r.mlw == null || r.erflag && !"AD".includes(r.erflag[0]) ? [tile("Motor", [r.erflag && `ERFLAG ${r.erflag}`, ...r.mensagens.slice(0, 2)].filter(Boolean).join(" · ") || "sem resultado", "full")] : [])));
+  ldDiagram(r, +body.lda);
+  // limites por criterio
+  const crit = [["Distância (LDA)", "WEIGHT LIMITED BY LDA"], ["Arremetida", "WEIGHT LIMITED BY ACG"],
+    ["Subida de pouso", "WEIGHT LIMITED BY LCG"], ["Energia de freio", "WEIGHT LIMITED BY BRAKE ENERGY"],
+    ["Pneus", "WEIGHT LIMITED BY TIRE SPEED"]].filter(([, k]) => r.principal[k] != null);
+  const menor = Math.min(...crit.map(([, k]) => r.principal[k]));
+  // o MLW (ou o maximo da base) ficou abaixo de todos os criterios: nenhum limita
+  const peloPeso = r.mlw != null && r.mlw < menor - 0.5;
+  ldEl("limits").replaceChildren(crit.length ? h("section", { class: "ld-block" },
+    h("p", { class: "kicker", text: "Peso limitado por cada critério" }),
+    h("div", { class: "kpi-strip" }, crit.map(([label, k]) => {
+      const x = r.principal[k], limita = !peloPeso && x === menor;
+      return h("dl", { class: `kpi${limita ? " ld-min" : ""}` },
+        h("dt", { text: label }), h("dd", {}, kg(x), h("small", { text: "kg" })),
+        h("p", { text: limita ? "o limitante" : `${kg(x - (peloPeso ? r.mlw : menor))} kg acima ${peloPeso ? "do peso máximo" : "do limitante"}` }));
+    }))) : "");
+  // no LW informado
+  const lw = r.no_lw;
+  ldEl("lwbox").replaceChildren(lw ? h("section", { class: "ld-block" },
+    h("p", { class: "kicker", text: `No peso de pouso informado (LW ${kg(r.lw)} kg)` }),
+    h("div", { class: "kpi-strip" },
+      h("dl", { class: "kpi" }, h("dt", { text: "Gradiente de arremetida" }), h("dd", { text: pct(lw.gradiente_arremetida) }), h("p", { text: "um motor inoperante" })),
+      h("dl", { class: "kpi" }, h("dt", { text: "Gradiente de subida de pouso" }), h("dd", { text: pct(lw.gradiente_pouso) })),
+      h("dl", { class: "kpi" }, h("dt", { text: a.fabricante === "airbus" ? "VAPP" : "VREF" }), h("dd", { text: kt(lw.vapp) })),
+      h("dl", { class: "kpi" }, h("dt", { text: "Distância de pouso" }), h("dd", { text: m(lw.ld) }), h("p", { text: lw.ld_exigida == null ? "" : `exigida ${m(lw.ld_exigida)}` })))) : "");
+  // detalhes
+  const fmt = (x) => (x == null ? "–" : Math.abs(x) >= 100 ? kg(x) : num(x));
+  ldEl("details").replaceChildren(
+    h("table", { class: "data pouso-table" }, h("tbody", {}, ...Object.entries(r.principal).map(([k, x]) =>
+      h("tr", {}, h("td", { text: k }), h("td", { class: "r", text: fmt(x) }))))),
+    h("p", { class: "pouso-flag" }, "ERFLAG ", h("b", { text: r.erflag || "?" }), r.mensagens.length ? ` · ${r.mensagens.join(" · ")}` : ""),
+    h("pre", { class: "pouso-in", text: r.entrada.replace(/\r/g, "") }));
+  ldShow("out");
+  window.scrollTo({ top: 0 });
+}
+/** Desenho: LDA inteira, distancia real de pouso e distancia exigida (fator). */
+function ldDiagram(r, lda) {
+  const svg = $("#ld-svg"), W = 900, H = 120, x0 = 40, x1 = W - 40;
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  svg.replaceChildren();
+  const max = Math.max(lda, r.ld_exigida || 0, r.ld || 0) || 1;
+  const sx = (d) => x0 + (x1 - x0) * d / max;
+  svg.append(s("rect", { x: sx(0), y: 34, width: sx(lda) - sx(0), height: 18, rx: 3, class: "rw-strip" }),
+    s("line", { x1: sx(0) + 6, y1: 43, x2: sx(lda) - 6, y2: 43, class: "rw-center" }),
+    s("text", { x: sx(0), y: 26, class: "rw-thr", text: ld.v.rwy || "" }),
+    s("text", { x: sx(lda), y: 26, class: "rw-bar-label", "text-anchor": "end", text: `LDA ${kg(lda)} m` }));
+  if (r.ld_exigida != null) {
+    const over = r.ld_exigida > lda + 0.5;
+    svg.append(s("line", { x1: sx(0), y1: 74, x2: sx(r.ld_exigida), y2: 74, class: `rw-bar ${over ? "ld-over" : "toda"}`, "stroke-width": 6 }),
+      s("text", { x: sx(r.ld_exigida), y: 92, class: "rw-bar-label", "text-anchor": "end", text: `exigida ${kg(r.ld_exigida)} m` }));
+  }
+  if (r.ld != null) {
+    svg.append(s("line", { x1: sx(0), y1: 60, x2: sx(r.ld), y2: 60, class: "rw-bar tora", "stroke-width": 8 }),
+      s("text", { x: sx(r.ld) + 6, y: 64, class: "rw-bar-label", text: `pouso ${kg(r.ld)} m` }));
+  }
+  $("#ld-diagram-note").textContent = r.ld != null && r.ld_exigida != null
+    ? `distância real ${kg(r.ld)} m × fator = ${kg(r.ld_exigida)} m exigidos · sobra ${kg(lda - r.ld_exigida)} m` : "";
 }
 
 (async function init() {

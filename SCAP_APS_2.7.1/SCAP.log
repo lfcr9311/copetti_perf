@@ -1,0 +1,67 @@
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+                ***********************************************
+              *********************************************** *
+              *                                             * *
+              *   L O W  S P E E D  P E R F O R M A N C E   * *
+              *                                             * *
+              *                   T T A M                   * *
+              *                                             * *
+              *            TAKE OFF COMPUTATION             * *
+              *         PROGRAM  ISSUE : H2 OCT.2025        * *
+              *                                             * *
+              ***********************************************
+1
+
+
+ // YOU HAVE USED THE MODULE NAMED ATR72*10/PW127F/M/N T00/15BMC-BD9.-1---A //
+
+
+ // YOU HAVE USED THE MODULE NAMED ATR72*10/PW127F/M/N APP/LDBMC-BD9.-1---A //
+
+
+ FIRST TABLE NUMBER OF EACH USED LIMITATION - FOR RWY STATUS CODE (NIGC) =  1  DRY RUNWAY      
+ ----------------------------------------------------------------
+
+ TOD1EF TOR1EF TODAEO TORAEO ASD1EF  V1LBE   VLOF     VR 1STSEG 2NDSEG
+     11   5011  10011  15011  20011  25011  30011  35011      0  45011
+
+  NTOFP           FTO AGRDN1 AGRND2 LGRDN1 LGRDN2 LDISN1 LDISN2     
+  50031  55011  60011      0      0      0      0      0      0      0
+
+
+      0      0      0      0      0      0      0      0      0      0
+
+
+      0      0      0      0      0
+ **** SELECTED REGULATION : FAR        FAR                                         
+
+ // LIMITATION NO : 9 NOT USED 
+ // LIMITATION NO :14 NOT USED 
+ // LIMITATION NO :15 NOT USED 
+ // LIMITATION NO :16 NOT USED 
+ // LIMITATION NO :17 NOT USED 
+ // LIMITATION NO :18 NOT USED 
+ // LIMITATION NO :19 NOT USED 
+ // LIMITATION NO :20 NOT USED 
+ // LIMITATION NO :21 NOT USED 
+ // LIMITATION NO :22 NOT USED 
+ // LIMITATION NO :23 NOT USED 

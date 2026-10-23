@@ -1,0 +1,283 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="\stylesheet\input_style.xsl"?>
+<INPUT_FILE>
+	<interface_version>X.X</interface_version>
+	<security_code>123456789012345678901234567890</security_code>
+	<takeoff_spec_version>X.X</takeoff_spec_version>
+	<config>
+		<data_files>data\</data_files>
+	</config>
+
+	<block type="TAKEOFF" id="1">
+
+		<!-- CASE 1 -->
+		<case id="1">
+
+		<!-- NUMERICAL COMMON BLOCK /TINPN/ SPECIFICATION -->
+
+			<!-- Program Array Options -->
+			<array name="POPT">
+				<item index="1"> <value>0</value> </item>
+				<item index="2"> <value>0</value> </item>
+				<item index="3"> <value>9E+20</value> </item>
+				<item index="4"> <value>9E+20</value> </item>
+				<item index="5"> <value>0</value> </item>
+				<item index="6"> <value>9E+20</value> </item>
+				<item index="7"> <value>0</value> </item>
+				<item index="8"> <value>9E+20</value> </item>
+				<item index="9"> <value>35</value> </item>
+				<item index="10"> <value>35</value> </item>
+				<item index="11"> <value>0</value> </item>
+				<item index="12"> <value>0</value> </item>
+				<item index="13"> <value>0</value> </item>
+				<item index="14"> <value>0</value> </item>
+				<item index="15"> <value>9E+20</value> </item>
+				<item index="16"> <value>9E+20</value> </item>
+				<item index="17"> <value>0</value> </item>
+				<item index="18"> <value>0</value> </item>
+				<item index="19"> <value>400</value> </item>
+				<item index="20"> <value>1</value> </item>
+				<item index="21"> <value>16</value> </item>
+				<item index="22"> <value>17</value> </item>
+				<item index="23"> <value>1</value> </item>
+				<item index="24"> <value>23000</value> </item>
+				<item index="25"> <value>9E+20</value> </item>
+				<item index="26"> <value>9E+20</value> </item>
+				<item index="27"> <value>0</value> </item>
+				<item index="28"> <value>9E+20</value> </item>
+				<item index="29"> <value>9E+20</value> </item>
+				<item index="30"> <value>0</value> </item>
+				<item index="31"> <value>9E+20</value> </item>
+				<item index="32"> <value>9E+20</value> </item>
+				<item index="33"> <value>0</value> </item>
+				<item index="34"> <value>9E+20</value> </item>
+				<item index="35"> <value>9E+20</value> </item>
+				<item index="36"> <value>0</value> </item>
+				<item index="37"> <value>9E+20</value> </item>
+				<item index="38"> <value>9E+20</value> </item>
+				<item index="39"> <value>0</value> </item>
+				<item index="40"> <value>9E+20</value> </item>
+				<item index="41"> <value>0</value> </item>
+				<item index="42"> <value>9E+20</value> </item>
+				<item index="43"> <value>0</value> </item>
+				<item index="44"> <value>9E+20</value> </item>
+				<item index="45"> <value>9E+20</value> </item>
+				<item index="46"> <value>9E+20</value> </item>
+				<item index="47"> <value>9E+20</value> </item>
+				<item index="48"> <value>9E+20</value> </item>
+				<item index="49"> <value>9E+20</value> </item>
+			</array>
+
+			<array name="CONF">
+				<item index="1"> <value>1</value> </item>
+				<item index="2"> <value>0</value> </item>
+				<item index="3"> <value>15</value> </item>
+				<item index="4"> <value>2</value> </item>
+				<item index="5"> <value>0</value> </item>
+				<item index="6"> <value>0</value> </item>
+				<item index="7"> <value>0</value> </item>
+				<item index="8"> <value>0</value> </item>
+				<item index="9"> <value>0</value> </item>
+				<item index="10"> <value>9E+20</value> </item>
+				<item index="11"> <value>9E+20</value> </item>
+				<item index="12"> <value>0</value> </item>
+				<item index="13"> <value>9E+20</value> </item>
+				<item index="14"> <value>0</value> </item>
+				<item index="15"> <value>0</value> </item>
+				<item index="16"> <value>9E+20</value> </item>
+				<item index="17"> <value>0</value> </item>
+				<item index="18"> <value>9E+20</value> </item>
+				<item index="19"> <value>9E+20</value> </item>
+				<item index="20"> <value>0</value> </item>
+				<item index="21"> <value>9E+20</value> </item>
+				<item index="22"> <value>9E+20</value> </item>
+				<item index="23"> <value>9E+20</value> </item>
+				<item index="24"> <value>9E+20</value> </item>
+				<item index="25"> <value>9E+20</value> </item>
+				<item index="26"> <value>9E+20</value> </item>
+				<item index="27"> <value>9E+20</value> </item>
+				<item index="28"> <value>9E+20</value> </item>
+				<item index="29"> <value>9E+20</value> </item>
+				<item index="30"> <value>9E+20</value> </item>
+				<item index="31"> <value>9E+20</value> </item>
+				<item index="32"> <value>0</value> </item>
+				<item index="33"> <value>9E+20</value> </item>
+				<item index="34"> <value>9E+20</value> </item>
+				<item index="35"> <value>9E+20</value> </item>
+				<item index="36"> <value>9E+20</value> </item>
+				<item index="37"> <value>9E+20</value> </item>
+				<item index="38"> <value>9E+20</value> </item>
+				<item index="39"> <value>9E+20</value> </item>
+				<item index="40"> <value>9E+20</value> </item>
+				<item index="41"> <value>9E+20</value> </item>
+				<item index="42"> <value>9E+20</value> </item>
+				<item index="43"> <value>9E+20</value> </item>
+				<item index="44"> <value>9E+20</value> </item>
+				<item index="45"> <value>9E+20</value> </item>
+				<item index="46"> <value>9E+20</value> </item>
+				<item index="47"> <value>9E+20</value> </item>
+				<item index="48"> <value>9E+20</value> </item>
+				<item index="49"> <value>9E+20</value> </item>
+				<item index="50"> <value>9E+20</value> </item>
+				<item index="51"> <value>9E+20</value> </item>
+				<item index="52"> <value>9E+20</value> </item>
+				<item index="53"> <value>9E+20</value> </item>
+				<item index="54"> <value>0</value> </item>
+				<item index="55"> <value>0</value> </item>
+				<item index="56"> <value>2</value> </item>
+			</array>
+
+			<array name="XMET">
+				<item index="1"> <value>30</value> </item>
+				<item index="2"> <value>0</value> </item>
+				<item index="3"> <value>9E+20</value> </item>
+				<item index="4"> <value>1</value> </item>
+				<item index="5"> <value>1013</value> </item>
+				<item index="6"> <value>9E+20</value> </item>
+				<item index="7"> <value>9E+20</value> </item>
+				<item index="8"> <value>9E+20</value> </item>
+				<item index="9"> <value>9E+20</value> </item>
+				<item index="10"> <value>9E+20</value> </item>
+			</array>
+
+			<array name="RWYD">
+				<item index="1"> <value>3498</value> </item>
+				<item index="2"> <value>0</value> </item>
+				<item index="3"> <value>3050</value> </item>
+				<item index="4"> <value>3050</value> </item>
+				<item index="5"> <value>3200</value> </item>
+				<item index="6"> <value>0.321</value> </item>
+				<item index="7"> <value>9E+20</value> </item>
+				<item index="8"> <value>0</value> </item>
+				<item index="9"> <value>1</value> </item>
+				<item index="10"> <value>0</value> </item>
+				<item index="11"> <value>45</value> </item>
+				<item index="12"> <value>9E+20</value> </item>
+			</array>
+
+			<array name="OBSD">
+				<item index="1"> <value>2</value> </item>
+				<item index="2"> <value>1</value> </item>
+				<item index="3"> <value>5940</value> </item>
+				<item index="4"> <value>227</value> </item>
+				<item index="5"> <value>9E+20</value> </item>
+				<item index="6"> <value>20000</value> </item>
+				<item index="7"> <value>377</value> </item>
+				<item index="8"> <value>9E+20</value> </item>
+				<item index="9"> <value>0</value> </item>
+				<item index="10"> <value>0</value> </item>
+				<item index="11"> <value>0</value> </item>
+				<item index="12"> <value>0</value> </item>
+				<item index="13"> <value>0</value> </item>
+				<item index="14"> <value>0</value> </item>
+				<item index="15"> <value>0</value> </item>
+				<item index="16"> <value>0</value> </item>
+				<item index="17"> <value>0</value> </item>
+				<item index="18"> <value>0</value> </item>
+				<item index="19"> <value>0</value> </item>
+				<item index="20"> <value>0</value> </item>
+				<item index="21"> <value>0</value> </item>
+				<item index="22"> <value>0</value> </item>
+				<item index="23"> <value>0</value> </item>
+				<item index="24"> <value>0</value> </item>
+				<item index="25"> <value>0</value> </item>
+				<item index="26"> <value>0</value> </item>
+				<item index="27"> <value>0</value> </item>
+				<item index="28"> <value>0</value> </item>
+				<item index="29"> <value>0</value> </item>
+				<item index="30"> <value>0</value> </item>
+				<item index="31"> <value>0</value> </item>
+				<item index="32"> <value>0</value> </item>
+				<item index="33"> <value>0</value> </item>
+				<item index="34"> <value>0</value> </item>
+				<item index="35"> <value>0</value> </item>
+				<item index="36"> <value>0</value> </item>
+				<item index="37"> <value>0</value> </item>
+				<item index="38"> <value>0</value> </item>
+				<item index="39"> <value>0</value> </item>
+				<item index="40"> <value>0</value> </item>
+				<item index="41"> <value>0</value> </item>
+				<item index="42"> <value>0</value> </item>
+				<item index="43"> <value>0</value> </item>
+				<item index="44"> <value>0</value> </item>
+				<item index="45"> <value>0</value> </item>
+				<item index="46"> <value>0</value> </item>
+				<item index="47"> <value>0</value> </item>
+				<item index="48"> <value>0</value> </item>
+				<item index="49"> <value>0</value> </item>
+				<item index="50"> <value>0</value> </item>
+				<item index="51"> <value>0</value> </item>
+				<item index="52"> <value>0</value> </item>
+				<item index="53"> <value>0</value> </item>
+				<item index="54"> <value>0</value> </item>
+				<item index="55"> <value>0</value> </item>
+				<item index="56"> <value>0</value> </item>
+				<item index="57"> <value>0</value> </item>
+				<item index="58"> <value>0</value> </item>
+				<item index="59"> <value>0</value> </item>
+				<item index="60"> <value>0</value> </item>
+				<item index="61"> <value>0</value> </item>
+				<item index="62"> <value>0</value> </item>
+				<item index="63"> <value>0</value> </item>
+				<item index="64"> <value>0</value> </item>
+				<item index="65"> <value>0</value> </item>
+				<item index="66"> <value>0</value> </item>
+				<item index="67"> <value>0</value> </item>
+				<item index="68"> <value>0</value> </item>
+				<item index="69"> <value>0</value> </item>
+				<item index="70"> <value>0</value> </item>
+				<item index="71"> <value>0</value> </item>
+				<item index="72"> <value>0</value> </item>
+				<item index="73"> <value>0</value> </item>
+				<item index="74"> <value>0</value> </item>
+				<item index="75"> <value>0</value> </item>
+				<item index="76"> <value>0</value> </item>
+				<item index="77"> <value>0</value> </item>
+				<item index="78"> <value>0</value> </item>
+				<item index="79"> <value>0</value> </item>
+				<item index="80"> <value>0</value> </item>
+				<item index="81"> <value>0</value> </item>
+				<item index="82"> <value>0</value> </item>
+				<item index="83"> <value>0</value> </item>
+				<item index="84"> <value>0</value> </item>
+				<item index="85"> <value>0</value> </item>
+				<item index="86"> <value>0</value> </item>
+				<item index="87"> <value>0</value> </item>
+				<item index="88"> <value>0</value> </item>
+				<item index="89"> <value>0</value> </item>
+				<item index="90"> <value>0</value> </item>
+				<item index="91"> <value>0</value> </item>
+				<item index="92"> <value>0</value> </item>
+			</array>
+
+			<array name="FPTD">
+				<item index="1"> <value>0</value> </item>
+			</array>
+
+			<array name="UNIT">
+				<item index="1"> <value>0</value> </item>
+				<item index="2"> <value>9E+20</value> </item>
+				<item index="3"> <value>0</value> </item>
+				<item index="4"> <value>1</value> </item>
+				<item index="5"> <value>1</value> </item>
+				<item index="6"> <value>0</value> </item>
+				<item index="7"> <value>9E+20</value> </item>
+				<item index="8"> <value>0</value> </item>
+				<item index="9"> <value>2</value> </item>
+				<item index="10"> <value>9E+20</value> </item>
+			</array>
+
+		<!-- ALPHANUMERICAL COMMON BLOCK /TINPA/ SPECIFICATION -->
+
+			<element name="ACTYPE"> <value>ATR72-600</value> </element>
+			<element name="ENGTYP"> <value>PW127M</value> </element>
+			<element name="BRAKES"> <value>N/A</value> </element>
+			<element name="ACMDBI"> <value>MUE6DC3E.PDF</value> </element>
+			<element name="CERTIF"> <value>FAR</value> </element>
+			<element name="APTIDT"> <value>SBBR</value> </element>
+			<element name="RWYNBR"> <value>11L</value> </element>
+			<element name="MISCLA"> <value></value> <description>MISCELLANEOUS</description> </element>
+			<element name="FDCFGI"> <value></value> <description>SLAT/FLAP CONFIGURATION</description> </element>
+		</case>
+	</block>
+</INPUT_FILE>

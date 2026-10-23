@@ -1,0 +1,157 @@
+<?xml version="1.0"?>
+<?xml-stylesheet type="text/xsl" href="..\stylesheet\input_style.xsl"?>
+<INPUT_FILE>
+	<interface_version>X.X</interface_version>
+	<security_code>123456789012345678901234567890</security_code>
+	<landing_spec_version>X.X</landing_spec_version>
+	<config>
+		<output_file>..\output\SCAP_OUT_LD.xml</output_file>
+		<trace_file>..\output\SCAP_LD.LOG</trace_file>
+		<stylesheet>..\stylesheet\output_style.xsl</stylesheet>
+		<data_files>..\data\</data_files>
+	</config>
+
+	<block type="LANDING" id="1">
+
+		<!-- CASE 1 -->
+		<case id="1">
+
+		<!-- NUMERICAL COMMON BLOCK /LINPN/ SPECIFICATION -->
+
+			<!-- Program Array Options -->
+			<array name="POPTL">
+				<item index="1"> <value>0</value> </item>
+				<item index="2"> <value>0</value> </item>
+				<item index="3"> <value>9E+20</value> </item>
+				<item index="4"> <value>9E+20</value> </item>
+				<item index="5"> <value>1</value> </item>
+				<item index="6"> <value>6</value> </item>
+				<item index="7"> <value>11</value> </item>
+				<item index="8"> <value>0</value> </item>
+				<item index="9"> <value>9E+20</value> </item>
+				<item index="10"> <value>9E+20</value> </item>
+				<item index="11"> <value>9E+20</value> </item>
+				<item index="12"> <value>0</value> </item>
+				<item index="13"> <value>0</value> </item>
+				<item index="14"> <value>9E+20</value> </item>
+				<item index="15"> <value>0</value> </item>
+				<item index="16"> <value>0</value> </item>
+				<item index="17"> <value>1</value> </item>
+				<item index="18"> <value>2.5</value> </item>
+				<item index="19"> <value>0</value> </item>
+				<item index="20"> <value>9E+20</value> </item>
+				<item index="21"> <value>0</value> </item>
+				<item index="22"> <value>9E+20</value> </item>
+				<item index="23"> <value>0</value> </item>
+				<item index="24"> <value>9E+20</value> </item>
+				<item index="25"> <value>0</value> </item>
+				<item index="26"> <value>0</value> </item>
+				<item index="27"> <value>9E+20</value> </item>
+				<item index="28"> <value>9E+20</value> </item>
+				<item index="29"> <value>0</value> </item>
+				<item index="30"> <value>9E+20</value> </item>
+				<item index="31"> <value>9E+20</value> </item>
+				<item index="32"> <value>9E+20</value> </item>
+				<item index="33"> <value>9E+20</value> </item>
+				<item index="34"> <value>0</value> </item>
+			</array>
+
+			<array name="CONFL">
+				<item index="1"> <value>4</value> </item>
+				<item index="2"> <value>9E+20</value> </item>
+				<item index="3"> <value>9E+20</value> </item>
+				<item index="4"> <value>9E+20</value> </item>
+				<item index="5"> <value>9E+20</value> </item>
+				<item index="6"> <value>2</value> </item>
+				<item index="7"> <value>0</value> </item>
+				<item index="8"> <value>9E+20</value> </item>
+				<item index="9"> <value>0</value> </item>
+				<item index="10"> <value>0</value> </item>
+				<item index="11"> <value>9E+20</value> </item>
+				<item index="12"> <value>0</value> </item>
+				<item index="13"> <value>9E+20</value> </item>
+				<item index="14"> <value>9E+20</value> </item>
+				<item index="15"> <value>0</value> </item>
+				<item index="16"> <value>9E+20</value> </item>
+				<item index="17"> <value>9E+20</value> </item>
+				<item index="18"> <value>0</value> </item>
+				<item index="19"> <value>0</value> </item>
+				<item index="20"> <value>9E+20</value> </item>
+				<item index="21"> <value>1</value> </item>
+				<item index="22"> <value>7.8</value> </item>
+				<item index="23"> <value>9E+20</value> </item>
+				<item index="24"> <value>0</value> </item>
+				<item index="25"> <value>9E+20</value> </item>
+				<item index="26"> <value>9E+20</value> </item>
+				<item index="27"> <value>9E+20</value> </item>
+				<item index="28"> <value>9E+20</value> </item>
+				<item index="29"> <value>9E+20</value> </item>
+				<item index="30"> <value>1</value> </item>
+				<item index="31"> <value>9E+20</value> </item>
+				<item index="32"> <value>9E+20</value> </item>
+				<item index="33"> <value>9E+20</value> </item>
+				<item index="34"> <value>9E+20</value> </item>
+				<item index="35"> <value>9E+20</value> </item>
+				<item index="36"> <value>9E+20</value> </item>
+				<item index="37"> <value>9E+20</value> </item>
+				<item index="38"> <value>9E+20</value> </item>
+				<item index="39"> <value>9E+20</value> </item>
+				<item index="40"> <value>9E+20</value> </item>
+				<item index="41"> <value>0</value> </item>
+				<item index="42"> <value>9E+20</value> </item>
+				<item index="43"> <value>9E+20</value> </item>
+				<item index="44"> <value>9E+20</value> </item>
+				<item index="45"> <value>1</value> </item>
+			</array>
+
+			<array name="XMETL">
+				<item index="1"> <value>-10</value> </item>
+				<item index="2"> <value>-5</value> </item>
+				<item index="3"> <value>9E+20</value> </item>
+				<item index="4"> <value>1</value> </item>
+				<item index="5"> <value>1013.25</value> </item>
+			</array>
+
+			<array name="RWYDL">
+				<item index="1"> <value>8500</value> </item>
+				<item index="2"> <value>1300</value> </item>
+				<item index="3"> <value>0</value> </item>
+				<item index="4"> <value>0</value> </item>
+				<item index="5"> <value>1</value> </item>
+				<item index="6"> <value>0</value> </item>
+			</array>
+
+			<array name="UNITL">
+				<item index="1"> <value>0</value> </item>
+				<item index="2"> <value>9E+20</value> </item>
+				<item index="3"> <value>0</value> </item>
+				<item index="4"> <value>1</value> </item>
+				<item index="5"> <value>1</value> </item>
+				<item index="6"> <value>0</value> </item>
+				<item index="7"> <value>9E+20</value> </item>
+				<item index="8"> <value>0</value> </item>
+				<item index="9"> <value>2</value> </item>
+			</array>
+
+		<!-- ALPHANUMERICAL COMMON BLOCK /LINPA/ SPECIFICATION -->
+
+			<element name="ACTYPL"> <value>ATR72-600</value> </element>
+			<element name="ENGTYL"> <value>PW127N</value> </element>
+			<element name="BRAKEL"> <value>DUNLOP 9.5 MJ</value> </element>
+			<element name="AMDBIL"> <value>MUE6DB3F.PDF</value> </element>
+			<element name="CERTIL"> <value>JARA</value> </element>
+			<element name="APTIDL"> <value>AIRPORT</value> </element>
+			<element name="RWYNBL"> <value>01</value> </element>
+			<element name="MISCLL"> <value></value> <description>MISCELLANEOUS</description> </element>
+			<element name="FDCFGA"> <value>S00F15</value> <description>SLAT/FLAP CONFIGURATION AT APPROACH</description> </element>
+			<element name="FDCFGL"> <value>S00F30</value> <description>SLAT/FLAP CONFIGURATION AT LANDING</description> </element>
+		</case>
+
+		<!-- CASE 2 -->
+		<case id="2">
+			<array name="XMETL">
+				<item index="1"> <value>25</value> </item>
+			</array>
+		</case>
+	</block>
+</INPUT_FILE>

@@ -12,3 +12,7 @@ __pycache__/
 x64/
 Debug/
 *.bak
+# licenca da ATR (SCAP APS): nunca no Git (repositorio publico)
+SCAP_APS_2.7.1/License
+SCAP_APS_2.7.1/LicenseKey
+SCAP_APS_2.7.1/*.zip
