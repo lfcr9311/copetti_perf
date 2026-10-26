@@ -1,0 +1,290 @@
+{
+ "TO01 A320 v0 SBRJ 20L 30C w0 q1013.25 {}": {
+  "peso": 63661,
+  "flap": "CONF 3",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO02 A320 v1 SBRJ 20L 30C w0 q1013.25 {}": {
+  "peso": 64913,
+  "flap": "CONF 3",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO03 A320 v2 SBKG 15 30C w0 q1013.25 {}": {
+  "peso": 69097,
+  "flap": "CONF 3",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO04 A320 v0 SBRJ 20L 30C w0 q1013.25 {\"cg\": {\"A320\": [1]}}": {
+  "peso": 63414,
+  "flap": "CONF 3",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO05 A320 v0 SBRJ 20L 25C w10 q1013.25 {}": {
+  "peso": 67237,
+  "flap": "CONF 3",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO06 A320 v0 SBRJ 20L 25C w-5 q990 {}": {
+  "peso": 47293,
+  "flap": "CONF 2",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO07 A320 v0 SBRJ 20L 30C w0 q1013.25 {\"flaps\": {\"A320\": [2215]}}": {
+  "peso": 63176,
+  "flap": "CONF 2",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO08 A321neo v0 SBRJ 20L 30C w0 q1013.25 {}": {
+  "peso": 63905,
+  "flap": "CONF 2",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO09 A320 v0 SBKP 15 0C w0 q1013.25 {\"mtow\": {\"A320\": 77000}}": {
+  "peso": 77000,
+  "flap": "CONF 1+F",
+  "limitante": "Peso estrutural",
+  "erro": null
+ },
+ "TO10 A321F v0 SBRJ 20L 30C w0 q1013.25 {}": {
+  "peso": 69103,
+  "flap": "CONF 3",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO11 A321F v1 SBKG 15 30C w0 q1013.25 {}": {
+  "peso": 69451,
+  "flap": "CONF 3",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO12 A330 v0 SBKP 15 35C w0 q1013.25 {}": {
+  "peso": 228555,
+  "flap": "CONF 2",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO13 A330neo v0 SBKP 15 35C w0 q1013.25 {}": {
+  "peso": 230682,
+  "flap": "CONF 2",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO14 A330neo v0 SBKP 15 35C w0 q1013.25 {\"cg\": {\"A330neo\": [4]}}": {
+  "peso": 233010,
+  "flap": "CONF 2",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO15 ATR 72-600 v0 SBRJ 20L 30C w0 q1013.25 {}": {
+  "peso": 21247,
+  "flap": "FLAP 15",
+  "limitante": "Obstáculo",
+  "erro": null
+ },
+ "TO16 ATR 72-600 v1 SBKG 33 30C w0 q1013.25 {}": {
+  "peso": 21521,
+  "flap": "FLAP 15",
+  "limitante": "Obstáculo",
+  "erro": null
+ },
+ "TO17 ATR 72-600 v2 SBFN 30 30C w0 q1013.25 {}": {
+  "peso": 22029,
+  "flap": "FLAP 15",
+  "limitante": "Obstáculo",
+  "erro": null
+ },
+ "TO18 ATR 72-600 v3 SBKG 15 30C w0 q1013.25 {}": {
+  "peso": 22265,
+  "flap": "FLAP 15",
+  "limitante": "Obstáculo",
+  "erro": null
+ },
+ "TO19 E195 v0 SBRJ 20L 30C w0 q1013 {}": {
+  "peso": 42244,
+  "flap": "FLAP 4",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO20 E195 v0 SBRJ 20L 30C w0 q1013 {\"cg\": {\"E195\": [1]}}": {
+  "peso": 42382,
+  "flap": "FLAP 4",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO21 E195 v0 SBKG 15 35C w0 q1013.25 {}": {
+  "peso": 41897,
+  "flap": "FLAP 4",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO22 E195 v0 SBRJ 20L 30C w0 q1013 {\"flaps\": {\"E195\": [3]}}": {
+  "peso": 41198,
+  "flap": "FLAP 3",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO23 E195-E2 v0 SBRJ 20L 30C w0 q1013 {}": {
+  "peso": 53034,
+  "flap": "FLAP 4",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO24 E195-E2 v0 SBRJ 20L 30C w0 q1013 {\"cg\": {\"E195-E2\": [1]}}": {
+  "peso": 53208,
+  "flap": "FLAP 4",
+  "limitante": "Distância – motor inoperante",
+  "erro": null
+ },
+ "TO25 E195-E2 v0 SBFN 30 35C w5 q1013.25 {}": {
+  "peso": 56306,
+  "flap": "FLAP 3",
+  "limitante": "Obstáculo",
+  "erro": null
+ },
+ "LD01 A320 SBRJ 20L lda1323 25C q1013.25 seca groo 2740/2220 {\"athr\": true, \"mlw\": 67400}": {
+  "peso": 57287,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 8.57,
+  "erro": null
+ },
+ "LD02 A320 SBRJ 20L lda1323 25C q1013.25 seca groo 2740/2220 {\"athr\": false, \"mlw\": 67400}": {
+  "peso": 61468,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 7.18,
+  "erro": null
+ },
+ "LD03 A320 SBRJ 20L lda1323 25C q1013.25 molh groo 2740/2220 {\"athr\": true, \"mlw\": 67400}": {
+  "peso": 53817,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 9.78,
+  "erro": null
+ },
+ "LD04 A320 SBKG 15 lda1565 25C q1013.25 molh 2740/2220 {\"athr\": true, \"lw\": 60000, \"mlw\": 67400}": {
+  "peso": 56973,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 8.52,
+  "erro": null
+ },
+ "LD05 A320 SBRJ 20L lda1323 25C q1013.25 seca groo 2220/2215 {\"athr\": true, \"mlw\": 67400}": {
+  "peso": 47826,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 13.03,
+  "erro": null
+ },
+ "LD06 E195 SBRJ 20L lda1323 25C q1013.25 seca groo 6/4 {\"mlw\": 45000}": {
+  "peso": 45000,
+  "limitante": "Peso máximo de pouso certificado (MLW)",
+  "grad": 4.45,
+  "erro": null
+ },
+ "LD07 E195 SBRJ 20L lda1260 30C q1013 seca groo 5/2 {}": {
+  "peso": 35475,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 9.9,
+  "erro": null
+ },
+ "LD08 E195 SBKG 15 lda1565 40C q1013.25 molh 6/4 {}": {
+  "peso": 45000,
+  "limitante": "Peso máximo de pouso certificado (MLW)",
+  "grad": 2.18,
+  "erro": null
+ },
+ "LD09 E195-E2 SBRJ 20L lda1323 25C q1013.25 seca groo 6/0 {}": {
+  "peso": 54000,
+  "limitante": "Peso máximo de pouso certificado (MLW)",
+  "grad": 6.46,
+  "erro": null
+ },
+ "LD10 E195-E2 SBRJ 20L lda1323 25C q1013.25 molh 6/0 {\"lw\": 50000}": {
+  "peso": 44130,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 11.91,
+  "erro": null
+ },
+ "LD11 E195-E2 SBRJ 20L lda1323 25C q1013.25 seca groo 5/0 {\"mlw\": 54000}": {
+  "peso": 45760,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 11.09,
+  "erro": null
+ },
+ "LD12 ATR 72-600 SBJR 03 lda900 25C q1013.25 seca 30/15 {}": {
+  "peso": 17484,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 6.72,
+  "erro": null
+ },
+ "LD13 ATR 72-600 SBJR 03 lda900 25C q1013.25 seca 30/15 {\"antigelo\": 6}": {
+  "peso": 100000000,
+  "limitante": "código 100",
+  "grad": -33256.32,
+  "erro": null
+ },
+ "LD14 ATR 72-600 SBRJ 20L lda1323 25C q1013.25 seca 30/15 {\"lw\": 21000, \"mlw\": 22350}": {
+  "peso": 22350,
+  "limitante": "Peso máximo de pouso certificado (MLW)",
+  "grad": 3.37,
+  "erro": null
+ },
+ "LD15 A320 SBRJ 20L lda1323 25C q1013.25 seca groo 2740/2220 {\"athr\": false, \"icao\": \"SBRJ\", \"rwy\": \"20L\"}": {
+  "peso": 61468,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 7.18,
+  "erro": null
+ },
+ "LD16 A320 SBRJ 20L lda1323 25C q1013.25 molh groo 2740/2220 {\"athr\": false, \"icao\": \"SBRJ\", \"rwy\": \"20L\"}": {
+  "peso": 58255,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 8.14,
+  "erro": null
+ },
+ "LD17 A320 SBRJ 20L lda1323 25C q1013.25 seca groo 2740/2220 {\"athr\": false, \"cg\": 1, \"icao\": \"SBRJ\", \"rwy\": \"20L\"}": {
+  "peso": 60428,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 7.49,
+  "erro": null
+ },
+ "LD18 A320 SBKG 33 lda1475 25C q1013.25 molh groo 2740/2220 {\"athr\": false, \"icao\": \"SBKG\", \"rwy\": \"33\"}": {
+  "peso": 56294,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 8.63,
+  "erro": null
+ },
+ "LD19 A321neo SBRJ 20L lda1323 25C q1013.25 seca groo 2734/2221 {\"athr\": false, \"icao\": \"SBRJ\", \"rwy\": \"20L\"}": {
+  "peso": 58175,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 10.98,
+  "erro": null
+ },
+ "LD20 A321neo SBKP 15 lda3150 25C q1013.25 molh 2734/2221 {\"athr\": false}": {
+  "peso": 79200,
+  "limitante": "Peso máximo de pouso certificado (MLW)",
+  "grad": 4.28,
+  "erro": null
+ },
+ "LD21 A321F SBRJ 20L lda1323 25C q1013.25 seca groo 2725/2221 {\"athr\": false, \"icao\": \"SBRJ\", \"rwy\": \"20L\"}": {
+  "peso": 55584,
+  "limitante": "Distância de pouso (LDA)",
+  "grad": 11.04,
+  "erro": null
+ },
+ "LD22 A330 SBKP 15 lda3150 25C q1013.25 seca 2332/2322 {\"athr\": false}": {
+  "peso": 182000,
+  "limitante": "Peso máximo de pouso certificado (MLW)",
+  "grad": 5.21,
+  "erro": null
+ },
+ "LD23 A330neo SBKP 15 lda3150 25C q1013.25 molh 2332/2323 {\"athr\": false}": {
+  "peso": 191000,
+  "limitante": "Peso máximo de pouso certificado (MLW)",
+  "grad": 3.57,
+  "erro": null
+ }
+}

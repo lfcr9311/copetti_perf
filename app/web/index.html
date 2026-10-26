@@ -1,0 +1,407 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Performance de Decolagem</title>
+  <link rel="icon" href="/assets/icon.png">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <!-- ============================== BARRA DO APP ============================== -->
+  <header class="appbar">
+    <div class="brand">
+      <svg class="brand-mark" viewBox="0 0 32 32" aria-hidden="true">
+        <rect width="32" height="32" rx="9" fill="url(#bm)"/>
+        <path d="M7 19.5l15.5-7.2c1.6-.7 3.2.9 2.4 2.5l-.3.5-7.8 3.6-3.3 5.6-2.3.9 1.5-5-4.4 2-1.5 1.9-1.6.6.9-3 1.4-2.4z" fill="#fff"/>
+        <defs><linearGradient id="bm" x1="0" y1="0" x2="32" y2="32"><stop stop-color="#1e6ff0"/><stop offset="1" stop-color="#00b4f0"/></linearGradient></defs>
+      </svg>
+      <div>
+        <h1>Performance de Decolagem</h1>
+        <p>MTOW por pista · SCAP · TTAM · ETM</p>
+      </div>
+    </div>
+    <nav class="tabs" role="tablist" aria-label="Páginas">
+      <button role="tab" data-page="calc" aria-selected="true">Cálculo</button>
+      <button role="tab" data-page="malha" aria-selected="false">Malha</button>
+      <button role="tab" data-page="pouso" aria-selected="false">Pouso</button>
+    </nav>
+    <button class="icon-btn" id="theme-toggle" type="button" title="Alternar tema claro/escuro" aria-label="Alternar tema claro/escuro">
+      <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg>
+    </button>
+  </header>
+
+  <!-- ============================== CALCULO (uma tela) ============================== -->
+  <section id="page-calc" class="page" role="tabpanel">
+    <div class="workspace">
+      <!-- consulta -->
+      <aside class="console" aria-label="Consulta">
+        <div class="console-scroll">
+          <section class="block" id="recent-block" hidden>
+            <header class="block-head"><h2>Recentes</h2><button class="link" id="recent-clear" type="button">Limpar</button></header>
+            <div id="recents" class="recents"></div>
+          </section>
+
+          <section class="block">
+            <header class="block-head">
+              <h2>Aeronaves <span class="badge" id="planes-count">0</span></h2>
+              <button class="link" id="planes-clear" type="button">Limpar</button>
+            </header>
+            <div id="planes" class="plane-list"></div>
+            <p class="hint" id="planes-hint"></p>
+          </section>
+
+          <section class="block">
+            <header class="block-head">
+              <h2>Pistas <span class="badge" id="runways-count">0</span></h2>
+              <button class="link" id="runways-clear" type="button">Limpar</button>
+            </header>
+            <div class="search">
+              <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 3a7 7 0 0 1 5.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1 1 10 3zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg>
+              <input id="airport-search" type="search" placeholder="Aeroporto: ICAO, IATA ou nome"
+                     autocomplete="off" role="combobox" aria-expanded="false" aria-controls="airport-list">
+              <ul id="airport-list" class="dropdown" role="listbox" hidden></ul>
+            </div>
+            <div id="recent-airports" class="quick-row"></div>
+            <div id="airport-runways" class="airport-box" hidden>
+              <div class="airport-head">
+                <div class="airport-title"><b id="airport-name"></b><span id="airport-meta" class="muted"></span></div>
+                <div class="quick-btns">
+                  <button type="button" class="mini" id="rw-main">Cabeceiras</button>
+                  <button type="button" class="mini" id="runways-all">Todas</button>
+                  <button type="button" class="mini" id="rw-none">Nenhuma</button>
+                </div>
+              </div>
+              <div id="runways" class="runway-pills"></div>
+            </div>
+            <div id="selected-runways" class="selected-list"></div>
+            <p class="hint" id="runways-hint">Busque um aeroporto e clique nas pistas. Pode misturar aeroportos.</p>
+          </section>
+
+          <section class="block">
+            <header class="block-head"><h2>Condições</h2></header>
+            <div id="calc-conditions" class="cond-stack"></div>
+            <div id="calc-flaps" class="cond flap-box"></div>
+            <div id="calc-cg" class="cond flap-box"></div>
+            <div id="calc-mtow" class="cond flap-box"></div>
+          </section>
+        </div>
+
+        <footer class="console-foot">
+          <p class="nav-info" id="calc-count"></p>
+          <button class="primary" id="calc-btn" type="button" title="Ctrl+Enter">Calcular</button>
+        </footer>
+      </aside>
+
+      <!-- resultado -->
+      <main class="stage">
+        <section id="rw-panel" class="surface rw-panel" aria-label="Pistas selecionadas" hidden></section>
+        <div id="calc-empty" class="guide" aria-label="Como usar">
+          <p class="kicker">Como usar</p>
+          <h2>Quatro passos, todos na coluna da esquerda</h2>
+          <ol class="guide-steps">
+            <li>
+              <span class="gn">1</span>
+              <div><b>Escolha as aeronaves</b>
+                <p>Clique nos motores. Clicar no <em>nome do modelo</em> (ex.: A320) marca ou desmarca todos de uma vez.</p></div>
+            </li>
+            <li>
+              <span class="gn">2</span>
+              <div><b>Escolha as pistas</b>
+                <p>Busque o aeroporto (ex.: <em>VCP</em> ou <em>SBKP</em>) e clique nas pistas. <em>Cabeceiras</em> marca só as pistas inteiras; pode somar vários aeroportos.</p></div>
+            </li>
+            <li>
+              <span class="gn">3</span>
+              <div><b>Ajuste as condições</b>
+                <p>Temperatura, vento (proa, cauda ou través) e QNH: um valor só ou uma faixa. Com faixas, todas as combinações são calculadas.</p></div>
+            </li>
+            <li>
+              <span class="gn">4</span>
+              <div><b>Calcule</b>
+                <p>Botão <em>Calcular</em> no fim da coluna (ou <kbd>Ctrl</kbd>+<kbd>Enter</kbd>). O resultado aparece aqui, em tabelas RTOW.</p></div>
+            </li>
+          </ol>
+          <p class="guide-tip">A última consulta fica salva, e as recentes aparecem no topo da coluna para repetir com um clique.</p>
+        </div>
+        <div id="calc-loading" class="state-card" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <div class="grow">
+            <p class="state-title" id="calc-loading-text">Calculando…</p>
+            <p class="muted" id="calc-loading-sub">Os motores rodam em paralelo na sua máquina.</p>
+            <div class="progress"><div id="calc-progress"></div></div>
+          </div>
+        </div>
+        <div id="calc-error" class="state-card error" hidden></div>
+
+        <div id="calc-result" hidden>
+          <div class="result-head">
+            <div class="result-title">
+              <h2 id="r-title"></h2>
+              <div id="r-tags" class="tags"></div>
+            </div>
+            <a id="r-csv" class="btn outline" href="#" download>
+              <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M12 3v10.6l3.3-3.3 1.4 1.4L12 16.4l-4.7-4.7 1.4-1.4L11 13.6V3zM5 19h14v2H5z"/></svg>
+              CSV
+            </a>
+          </div>
+
+          <div id="r-hero" class="hero" hidden></div>
+          <div id="r-kpis" class="kpi-strip" hidden></div>
+
+          <div id="r-views" class="surface" hidden>
+            <div class="view-tabs" role="tablist" aria-label="Visões">
+              <button role="tab" data-view="rtow" aria-selected="true">Tabela RTOW</button>
+              <button role="tab" data-view="chart" aria-selected="false">Gráfico</button>
+              <button role="tab" data-view="list" aria-selected="false">Lista</button>
+            </div>
+            <div class="view-body">
+              <div id="view-rtow" class="view"></div>
+              <div id="view-chart" class="view" hidden>
+                <div id="chart-controls" class="controls"></div>
+                <div id="chart-legend" class="legend"></div>
+                <div id="chart" class="chart"></div>
+                <p class="hint" id="chart-note"></p>
+              </div>
+              <div id="view-list" class="view" hidden></div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </section>
+
+  <!-- ============================== MALHA ============================== -->
+  <section id="page-malha" class="page" role="tabpanel" hidden>
+    <main class="results">
+      <div class="malha-head">
+        <p class="kicker">Malha</p>
+        <h2>MTOW e alertas de cada voo da malha</h2>
+        <p class="muted">Lê o aeroporto de partida (coluna C) e o equipamento (coluna Eqp), calcula todas as pistas
+          de cada aeroporto em todas as combinações, acha o <b>maior</b> MTOW e o do <b>pior caso</b>, compara com o
+          peso de referência e grava tudo em colunas novas no fim da própria malha. O original fica em <code>.bak</code>.</p>
+      </div>
+      <div class="surface malha-form">
+        <label class="field" id="malha-path-field"><span>Arquivo da malha</span>
+          <input id="malha-path" type="text" spellcheck="false"></label>
+        <label class="field" id="malha-file-field" hidden><span>Arquivo da malha (.csv do seu computador)</span>
+          <input id="malha-file" type="file" accept=".csv,text/csv"></label>
+        <div id="malha-conditions" class="cond-grid"></div>
+        <fieldset class="ref-box">
+          <legend>Peso de referência para o alerta</legend>
+          <p class="muted">O peso que a aeronave precisa decolar. Em branco = peso estrutural.
+            <span class="legend-inline"><span class="badge ok">OK</span> o pior caso atende ·
+            <span class="badge warn">Atenção</span> atende só até certa temperatura ·
+            <span class="badge bad">Restrito</span> nem o melhor caso atende</span></p>
+          <div id="malha-refs" class="ref-grid"></div>
+        </fieldset>
+        <div class="malha-actions">
+          <p id="malha-count" class="count"></p>
+          <button id="malha-btn" class="primary" type="button">Calcular malha</button>
+        </div>
+      </div>
+
+      <div id="malha-loading" class="state-card" hidden>
+        <div class="spinner" aria-hidden="true"></div>
+        <div class="grow">
+          <p class="state-title" id="malha-loading-text">Lendo a malha…</p>
+          <div class="progress"><div id="malha-progress"></div></div>
+        </div>
+      </div>
+      <div id="malha-error" class="state-card error" hidden></div>
+      <div id="malha-result" class="surface" hidden>
+        <div class="result-head inner">
+          <div class="result-title">
+            <h2>Malha atualizada</h2>
+            <p class="muted" id="malha-sub"></p>
+          </div>
+          <button id="malha-open" class="btn outline" type="button">Abrir malha</button>
+          <a id="malha-download" class="btn outline" hidden>Baixar malha calculada</a>
+        </div>
+        <div id="malha-alerts" class="alert-bar" role="group" aria-label="Filtrar por alerta"></div>
+        <div id="malha-table" class="table-wrap"></div>
+      </div>
+    </main>
+  </section>
+
+  <!-- ============================== POUSO ============================== -->
+  <section id="page-pouso" class="page" role="tabpanel" hidden>
+    <div class="workspace">
+      <aside class="console" aria-label="Consulta de pouso">
+        <form id="ld-form" class="console-form" novalidate>
+        <div class="console-scroll">
+          <section class="block">
+            <header class="block-head"><h2>Aeronave</h2><span class="tag-beta">em teste</span></header>
+            <div id="ld-planes" class="plane-list"></div>
+          </section>
+
+          <section class="block">
+            <header class="block-head"><h2>Pista</h2></header>
+            <div class="search">
+              <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M10 3a7 7 0 0 1 5.6 11.2l5.1 5.1-1.4 1.4-5.1-5.1A7 7 0 1 1 10 3zm0 2a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg>
+              <input id="ld-icao" list="ld-airports" autocomplete="off" spellcheck="false" placeholder="Aeroporto: ICAO (ex. SBRJ)">
+            </div>
+            <div id="ld-runways" class="runway-pills ld-runways"></div>
+            <p class="hint" id="ld-rwy-info"></p>
+            <div class="ld-grid three">
+              <label class="ld-field"><span>LDA</span><span class="ld-in"><input id="ld-lda" type="number" step="1" required><em>m</em></span></label>
+              <label class="ld-field"><span>Elevação</span><span class="ld-in"><input id="ld-elev" type="number" step="1" required><em>ft</em></span></label>
+              <label class="ld-field"><span>Slope</span><span class="ld-in"><input id="ld-slope" type="number" step="0.01" required><em>%</em></span></label>
+            </div>
+            <p class="hint">A LDA começa igual à TORA do cadastro (o <code>airports_list.csv</code> não tem LDA). Ajuste pela carta.</p>
+            <div class="ld-choice" data-key="grooved" data-label="Superfície"></div>
+          </section>
+
+          <section class="block">
+            <header class="block-head"><h2>Condições</h2></header>
+            <div class="ld-grid three">
+              <label class="ld-field"><span>Temperatura</span><span class="ld-in"><input id="ld-temp" type="number" step="1" value="25" required><em>°C</em></span></label>
+              <label class="ld-field"><span>QNH</span><span class="ld-in"><input id="ld-qnh" type="number" step="0.01" value="1013.25" required><em>hPa</em></span></label>
+              <label class="ld-field"><span>Vento <small>+ proa / − cauda</small></span><span class="ld-in"><input id="ld-vento" type="number" step="1" value="0" required><em>kt</em></span></label>
+            </div>
+            <div class="ld-choice" data-key="molhada" data-label="Pista"></div>
+          </section>
+
+          <section class="block">
+            <header class="block-head"><h2>Configuração</h2></header>
+            <div class="ld-choice" data-key="conf" data-label="Flap de pouso"></div>
+            <div class="ld-choice" data-key="athr" data-label="Técnica de pouso" data-fab="airbus"></div>
+            <div class="ld-choice" data-key="cg" data-label="Envelope de CG" data-fab="airbus"></div>
+            <div class="ld-choice" data-key="reverso" data-label="Reverso"></div>
+            <div class="ld-choice" data-key="antigelo" data-label="Anti-ice"></div>
+            <div class="ld-choice" data-key="autobrake" data-label="Autobrake" data-fab="embraer"></div>
+            <div class="ld-choice" data-key="ar" data-label="Ar-condicionado" data-fab="airbus"></div>
+            <div class="ld-grid two">
+              <label class="ld-field"><span>MLW <small id="ld-mlw-ref">vazio = certificado</small></span><span class="ld-in"><input id="ld-mlw" type="number" step="1" placeholder="certificado"><em>kg</em></span></label>
+              <label class="ld-field"><span>Peso de pouso LW <small>opcional</small></span><span class="ld-in"><input id="ld-lw" type="number" step="100" placeholder="gradiente nesse peso"><em>kg</em></span></label>
+            </div>
+            <details class="ld-adv">
+              <summary>Avançado</summary>
+              <div class="ld-grid two">
+                <label class="ld-field"><span>Gradiente de arremetida exigido</span><span class="ld-in"><input id="ld-ga" type="number" step="0.1" placeholder="STD"><em>%</em></span></label>
+                <label class="ld-field" data-fab="embraer"><span>Incremento na VREF</span><span class="ld-in"><input id="ld-vrefinc" type="number" step="1" value="0"><em>kt</em></span></label>
+                <label class="ld-field"><span>Código do pouso <small id="ld-cpouso-ref">CONFL(4)</small></span><span class="ld-in"><input id="ld-cpouso" type="number" step="1" required></span></label>
+                <label class="ld-field"><span>Código da arremetida <small id="ld-carr-ref">CONFL(2)</small></span><span class="ld-in"><input id="ld-carr" type="number" step="1" required></span></label>
+              </div>
+              <p class="hint">Os códigos vêm do flap escolhido; em "Outro" dá para digitar à mão (ex. para testar a base do A321/A330).</p>
+            </details>
+          </section>
+        </div>
+        <footer class="console-foot">
+          <p class="nav-info" id="ld-summary"></p>
+          <button class="primary" type="submit" id="ld-btn">Calcular pouso</button>
+        </footer>
+        </form>
+      </aside>
+
+      <main class="stage">
+        <div id="ld-empty" class="guide" aria-label="Como usar">
+          <p class="kicker">Pouso · despacho</p>
+          <h2>Peso máximo de pouso por pista</h2>
+          <ol class="guide-steps">
+            <li><span class="gn">1</span><div><b>Escolha a aeronave</b>
+              <p>Airbus pelo <em>scap_octopus</em>, E195 pela <em>ELM170</em>, E195-E2 pelo <em>ELME2</em> e ATR pelo <em>TLAM</em> (programa oficial, com licença).</p></div></li>
+            <li><span class="gn">2</span><div><b>Escolha a pista</b>
+              <p>Digite o ICAO e clique na pista. LDA, elevação e slope vêm do cadastro e podem ser ajustados.</p></div></li>
+            <li><span class="gn">3</span><div><b>Condições e configuração</b>
+              <p>Temperatura, QNH, vento, pista seca/molhada, flap, técnica, reverso. Tudo em um valor só.</p></div></li>
+            <li><span class="gn">4</span><div><b>Calcule</b>
+              <p>O resultado mostra o peso máximo, o limitante, os gradientes e o desenho da distância sobre a LDA.</p></div></li>
+          </ol>
+        </div>
+        <div id="ld-loading" class="state-card" hidden>
+          <div class="spinner" aria-hidden="true"></div>
+          <div class="grow"><p class="state-title">Calculando o pouso…</p><p class="muted">Um cálculo por vez no motor da aeronave.</p></div>
+        </div>
+        <div id="ld-error" class="state-card error" hidden></div>
+        <div id="ld-out" hidden>
+          <div class="result-head">
+            <div class="result-title"><h2 id="ld-title"></h2><div id="ld-tags" class="tags"></div></div>
+          </div>
+          <div id="ld-hero" class="hero"></div>
+          <section class="surface ld-diagram"><header class="ld-sec-head"><h3>Distância de pouso sobre a LDA</h3><small class="muted" id="ld-diagram-note"></small></header>
+            <svg id="ld-svg" class="rw-side" role="img" aria-label="Distância de pouso sobre a LDA"></svg></section>
+          <div id="ld-limits"></div>
+          <div id="ld-lwbox"></div>
+          <section class="surface ld-details"><details><summary>Todos os resultados e a entrada enviada</summary><div id="ld-details"></div></details></section>
+        </div>
+      </main>
+    </div>
+    <datalist id="ld-airports"></datalist>
+  </section>
+
+  <dialog id="rw-editor" class="rw-editor" aria-labelledby="rwe-title">
+    <form method="dialog" id="rwe-form">
+      <header>
+        <div><h2 id="rwe-title">Editar pista</h2><p class="muted" id="rwe-sub"></p></div>
+        <button class="icon-close" value="cancel" type="submit" aria-label="Fechar">×</button>
+      </header>
+      <div class="rwe-body">
+      <div class="rwe-main">
+      <fieldset class="rwe-quick rwe-closure" id="rwe-closure">
+        <legend>Redução de pista <span class="muted" id="rwe-closure-pair"></span></legend>
+        <div class="closure-ends">
+          <label class="closure-end">
+            <span>Fechado a partir da cabeceira <b data-thr="a"></b></span>
+            <span class="row"><input type="number" id="rwe-close-a" class="num-input" min="0" step="1" placeholder="0" inputmode="numeric"><span class="unit">m</span></span>
+          </label>
+          <label class="closure-end">
+            <span>Fechado a partir da cabeceira <b data-thr="b"></b></span>
+            <span class="row"><input type="number" id="rwe-close-b" class="num-input" min="0" step="1" placeholder="0" inputmode="numeric"><span class="unit">m</span></span>
+          </label>
+        </div>
+        <p class="closure-note" id="rwe-closure-note"></p>
+      </fieldset>
+      <div class="rwe-grid" id="rwe-fields"></div>
+      <section class="rwe-obst" aria-labelledby="rwe-obst-title">
+        <div class="rwe-obst-head">
+          <h3 id="rwe-obst-title">Obstáculos <span class="badge" id="rwe-obst-count">0</span></h3>
+          <div class="quick-btns">
+            <button type="button" class="mini" id="rwe-obst-all">Considerar todos</button>
+            <button type="button" class="mini" id="rwe-obst-none">Nenhum</button>
+            <button type="button" class="mini" id="rwe-obst-add">+ Adicionar</button>
+          </div>
+        </div>
+        <p class="muted">Distância a partir do fim da TORA (m) e altura (ft). Desmarque para tirar do cálculo;
+          os novos (não mapeados no cadastro) podem ser removidos.</p>
+        <div class="table-wrap"><table class="obst-table">
+          <thead><tr><th scope="col">Considerar</th><th scope="col">Distância (m)</th><th scope="col">Altura (ft)</th>
+            <th scope="col">Origem</th><th scope="col"><span class="sr-only">Remover</span></th></tr></thead>
+          <tbody id="rwe-obst"></tbody>
+        </table></div>
+        <p class="rwe-note" id="rwe-obst-empty" hidden>Sem obstáculos. Use <b>+ Adicionar</b> para incluir um.</p>
+      </section>
+      <p class="rwe-note">A alteração vale só para as consultas neste navegador; o <code>airports_list.csv</code> não é alterado.
+        A redução de pista vale para todas as pistas da mesma pista física (as duas cabeceiras e as interseções).</p>
+      </div>
+      <aside class="rwe-draw" aria-label="Desenho da pista">
+        <h3>Pista <small class="muted">vista de cima, em escala</small></h3>
+        <svg id="rwe-plan" class="rwe-svg" role="img" aria-label="Pista vista de cima"></svg>
+        <h3>Obstáculos <small class="muted">a partir do fim da TORA</small></h3>
+        <svg id="rwe-profile" class="rwe-svg" role="img" aria-label="Perfil dos obstáculos"></svg>
+        <label class="rwe-ref"><input type="checkbox" id="rwe-ref"> Trajetória de referência <span class="muted">(ilustrativa: 35 ft no fim da TODA e 1,6 %; o cálculo é o do motor)</span></label>
+      </aside>
+      </div>
+      <footer>
+        <button type="button" class="btn outline" id="rwe-reset">Restaurar original</button>
+        <span class="grow"></span>
+        <button type="submit" class="btn outline" value="cancel">Cancelar</button>
+        <button type="submit" class="btn solid" value="apply" id="rwe-apply">Aplicar</button>
+      </footer>
+    </form>
+  </dialog>
+
+  <dialog id="login" class="rw-editor login" aria-labelledby="login-title">
+    <form method="dialog" id="login-form">
+      <header><div><h2 id="login-title">Senha de acesso</h2>
+        <p class="muted">Peça a senha a quem cuida do programa.</p></div></header>
+      <input id="login-key" type="password" autocomplete="current-password" required aria-label="Senha">
+      <p id="login-error" class="rwe-note err" hidden>Senha incorreta.</p>
+      <footer><span class="grow"></span><button type="submit" class="btn solid" value="ok">Entrar</button></footer>
+    </form>
+  </dialog>
+
+  <div id="tooltip" class="tooltip" role="status" hidden></div>
+  <script src="/config.js"></script>
+  <script src="/app.js"></script>
+</body>
+</html>
