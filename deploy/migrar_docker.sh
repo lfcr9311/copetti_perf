@@ -100,8 +100,8 @@ ok "containers no ar"
 ANTIGOS="$RUN_HOME/fortran_antigo/scap_py/resultados"
 if [ -d "$ANTIGOS" ] && [ -n "$(ls -A "$ANTIGOS" 2>/dev/null)" ]; then
     passo "Copiando os resultados antigos para o volume do Docker"
-    docker compose cp "$ANTIGOS/." perf:/app/scap_py/resultados/
-    docker compose exec -T -u root perf chown -R perf:perf /app/scap_py/resultados
+    docker compose cp "$ANTIGOS/." perf:/app/app/results/
+    docker compose exec -T -u root perf chown -R perf:perf /app/app/results
     ok "$(ls "$ANTIGOS" | wc -l) arquivo(s) de $ANTIGOS"
 fi
 
@@ -132,5 +132,5 @@ cat <<EOF
  - Ver os containers:     docker compose ps        (na pasta $DIR)
  - Ver o log:             docker compose logs -f perf
  - Atualizar a mao:       bash deploy/atualizar.sh
- - Deploy automatico:     configure os secrets no GitHub (scap_py/DOCKER.md)
+ - Deploy automatico:     configure os secrets no GitHub (docs/DOCKER.md)
 EOF

@@ -1,6 +1,6 @@
 # Performance de Decolagem: tela + calculo (Airbus e Embraer pelo Wine, ATR
 # pelo .so) num container so. Construir a partir da pasta fortran/:
-#   docker compose up -d --build        (ver scap_py/DOCKER.md)
+#   docker compose up -d --build        (ver docs/DOCKER.md)
 FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
@@ -22,10 +22,10 @@ RUN (wineboot --init || true) && (wineserver --wait || true)
 WORKDIR /app
 COPY --chown=perf:perf . /app
 # bases grandes que vieram comprimidas do GitHub (.pdm.gz): descomprime ja
-RUN cd /app && for f in *.gz; do [ -e "$f" ] || continue; \
+RUN cd /app && for f in databases/*/*.gz; do [ -e "$f" ] || continue; \
       [ -e "${f%.gz}" ] || gunzip -k "$f"; done \
- && mkdir -p scap_py/work scap_py/resultados
+ && mkdir -p app/work app/results
 
 ENV PERF_HOST=0.0.0.0 PERF_PORT=8765 PERF_SERVER=1 PYTHONUNBUFFERED=1
 EXPOSE 8765
-CMD ["python3", "scap_py/app.py", "--no-browser"]
+CMD ["python3", "app/server.py", "--no-browser"]

@@ -6,8 +6,8 @@
 #   - Wine 32 bits     scap_octopus.dll (Airbus), takeoff_module.exe e as DLLs
 #                      da Embraer sao programas Windows de 32 bits
 #   - Python 3         o app (so biblioteca padrao)
-#   - libgfortran5     o motor do ATR (scap_py/engines/DllWrapperATR.so)
-#   - MinGW i686       compila o scap_py/engines/scaploader.exe (carregador
+#   - libgfortran5     o motor do ATR (engines/atr/DllWrapperATR.so)
+#   - MinGW i686       compila o engines/loader/scaploader.exe (carregador
 #                      em C das DLLs da Embraer; o .exe ja vem pronto no Git,
 #                      o compilador so e preciso para recompilar)
 #
@@ -48,15 +48,15 @@ sudo -u "$RUN_USER" env HOME="$RUN_HOME" timeout 120 wineserver --wait >/dev/nul
 ok "prefixo em $RUN_HOME/.wine"
 
 passo "Carregador das DLLs da Embraer (scaploader.exe)"
-sudo -u "$RUN_USER" bash "$DIR/scap_py/engines/compilar.sh"
+sudo -u "$RUN_USER" bash "$DIR/engines/loader/build.sh"
 
 passo "Bases grandes (.pdm.gz)"
 shopt -s nullglob
-for gz in "$DIR"/*.gz; do
+for gz in "$DIR"/databases/*/*.gz; do
     [ -e "${gz%.gz}" ] || { sudo -u "$RUN_USER" gunzip -k "$gz"; ok "descomprimido $(basename "${gz%.gz}")"; }
 done
 
 cat <<EOF
 
-Pronto. Para abrir o app:   cd $DIR/scap_py && python3 app.py
+Pronto. Para abrir o app:   cd $DIR/app && python3 server.py
 EOF

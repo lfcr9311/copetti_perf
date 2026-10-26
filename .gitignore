@@ -1,18 +1,19 @@
 # bases grandes: vao comprimidas (.pdm.gz)
-CAFM-EDB-015.pdm
-CAFM-EDB-002.pdm
+databases/embraer/CAFM-EDB-015.pdm
 *.part
 # senha do servidor
 .env
 # temporarios e compilacao
-scap_py/work/
-scap_py/resultados/
+app/work/
+app/results/
 __pycache__/
 .vs/
 x64/
 Debug/
 *.bak
 # licenca da ATR (SCAP APS): nunca no Git (repositorio publico)
-SCAP_APS_2.7.1/License
-SCAP_APS_2.7.1/LicenseKey
-SCAP_APS_2.7.1/*.zip
+engines/atr/SCAP_APS_2.7.1/License
+engines/atr/SCAP_APS_2.7.1/LicenseKey
+engines/atr/SCAP_APS_2.7.1/*.zip
+# manuais dos fabricantes (proprietarios): so local, nunca no Git (repositorio publico)
+docs/manuals/

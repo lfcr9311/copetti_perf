@@ -5,7 +5,7 @@
 #
 # Instala TUDO: bibliotecas do sistema, Wine 32 bits (Airbus e Embraer),
 # Python 3, libgfortran (ATR), nginx, swap (maquinas pequenas), o servico
-# "perf" (app.py sempre ligado) e testa os tres motores de calculo no fim.
+# "perf" (server.py sempre ligado) e testa os tres motores de calculo no fim.
 #
 # Uso, de dentro da pasta fortran no servidor:
 #     sudo bash deploy/instalar_ec2.sh
@@ -36,7 +36,7 @@ case "${ID:-}" in
 esac
 
 DIR="$(cd "$(dirname "$0")/.." && pwd)"                 # pasta fortran
-APP="$DIR/scap_py/app.py"
+APP="$DIR/app/server.py"
 [ -f "$APP" ] || falha "Nao achei $APP. Rode o script de dentro da pasta fortran."
 RUN_USER="${SUDO_USER:-}"
 if [ -z "$RUN_USER" ] || [ "$RUN_USER" = root ]; then
@@ -91,7 +91,7 @@ apt-get install -y -q \
 ok "python3 $(python3 -c 'import platform; print(platform.python_version())')"
 ok "$(wine --version 2>/dev/null || echo 'wine instalado')"
 ok "nginx $(nginx -v 2>&1 | sed 's/.*\///')"
-sudo -u "${SUDO_USER:-root}" bash "$(cd "$(dirname "$0")/.." && pwd)/scap_py/engines/compilar.sh" \
+sudo -u "${SUDO_USER:-root}" bash "$(cd "$(dirname "$0")/.." && pwd)/engines/loader/build.sh" \
     && ok "scaploader.exe (carregador das DLLs da Embraer) compilado"
 
 PY_OK=$(python3 -c 'import sys; print(int(sys.version_info >= (3, 8)))')
@@ -100,7 +100,7 @@ PY_OK=$(python3 -c 'import sys; print(int(sys.version_info >= (3, 8)))')
 # ----------------------------------------------------------------- projeto
 passo "Preparando os arquivos do projeto"
 shopt -s nullglob
-for gz in "$DIR"/*.gz; do                 # bases que vieram comprimidas do GitHub
+for gz in "$DIR"/databases/*/*.gz; do                 # bases que vieram comprimidas do GitHub
     alvo="${gz%.gz}"
     if [ ! -e "$alvo" ]; then
         gunzip -k "$gz"
@@ -108,9 +108,9 @@ for gz in "$DIR"/*.gz; do                 # bases que vieram comprimidas do GitH
     fi
 done
 shopt -u nullglob
-mkdir -p "$DIR/scap_py/work" "$DIR/scap_py/resultados"
+mkdir -p "$DIR/app/work" "$DIR/app/results"
 chown -R "$RUN_USER": "$DIR"
-ok "pastas work/ e resultados/ prontas"
+ok "pastas app/work/ e app/results/ prontas"
 
 # ----------------------------------------------------------------- wine
 passo "Preparando o Wine para o usuario $RUN_USER"
@@ -124,10 +124,10 @@ sudo -u "$RUN_USER" env HOME="$RUN_HOME" timeout 120 wineserver --wait >/dev/nul
 passo "Testando os motores de calculo (SBKP 15, 25 C)"
 systemctl stop perf 2>/dev/null || true            # libera as pastas de trabalho
 if ! sudo -u "$RUN_USER" env HOME="$RUN_HOME" WINEDEBUG=-all \
-        bash -c "cd '$DIR/scap_py' && timeout 600 python3 -" <<'EOF'
-import scap_engine as se
-from aircraft import AIRCRAFT
-from airports import load_airports, load_toalign, align_values
+        bash -c "cd '$DIR/app' && timeout 600 python3 -" <<'EOF'
+from perf.takeoff import engine as se
+from perf.catalog.aircraft import AIRCRAFT
+from perf.catalog.airports import load_airports, load_toalign, align_values
 ap, ta = load_airports(), load_toalign()
 rw = ap["SBKP"]["runways"]["15"]
 ok = True
@@ -152,7 +152,7 @@ printf 'PERF_PASSWORD=%s\n' "$PERF_PASSWORD" > /etc/perf.env
 ok "senha guardada"
 
 # ----------------------------------------------------------------- servico
-passo "Criando o servico perf (app.py sempre ligado)"
+passo "Criando o servico perf (server.py sempre ligado)"
 cat > /etc/systemd/system/perf.service <<EOF
 [Unit]
 Description=Performance de Decolagem
@@ -160,7 +160,7 @@ After=network.target
 
 [Service]
 User=$RUN_USER
-WorkingDirectory=$DIR/scap_py
+WorkingDirectory=$DIR/app
 Environment=HOME=$RUN_HOME
 Environment=PERF_HOST=127.0.0.1
 Environment=PERF_PORT=8765
@@ -181,7 +181,7 @@ systemctl restart perf
 ok "servico perf ativo"
 
 # ----------------------------------------------------------------- nginx
-passo "Configurando o nginx (porta 80 -> app.py)"
+passo "Configurando o nginx (porta 80 -> server.py)"
 cat > /etc/nginx/sites-available/perf <<'EOF'
 server {
     listen 80 default_server;

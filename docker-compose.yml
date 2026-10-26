@@ -1,5 +1,5 @@
 # Sobe o programa + o Caddy (HTTPS automatico). Configure no arquivo .env
-# (copie de .env.example). Ver scap_py/DOCKER.md.
+# (copie de .env.example). Ver docs/DOCKER.md.
 services:
   perf:
     build: .
@@ -10,7 +10,7 @@ services:
       PERF_WORKERS: ${PERF_WORKERS:-}
       PERF_CORS_ORIGIN: ${PERF_CORS_ORIGIN:-}
     volumes:
-      - resultados:/app/scap_py/resultados
+      - resultados:/app/app/results
 
   caddy:
     image: caddy:2

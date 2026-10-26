@@ -5,9 +5,12 @@
 x64
 Debug
 **/__pycache__
-scap_py/work
-scap_py/resultados
+app/work
+app/results
+app/tests
+legacy
 *.bak
 *.pdb
 .zip
 .env
+docs/manuals

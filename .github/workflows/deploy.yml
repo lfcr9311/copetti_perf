@@ -1,6 +1,6 @@
 # Deploy automatico: a cada push na master, entra no EC2 por SSH e roda
 # deploy/atualizar.sh (git pull + docker compose up --build).
-# Configuracao (secrets, chave SSH, primeira instalacao): scap_py/DOCKER.md,
+# Configuracao (secrets, chave SSH, primeira instalacao): docs/DOCKER.md,
 # secao "Deploy automatico pelo GitHub".
 name: Deploy no EC2
 
