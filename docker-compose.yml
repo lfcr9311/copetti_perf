@@ -5,6 +5,10 @@ services:
     build: .
     image: performance-decolagem
     restart: unless-stopped
+    # init (tini) como PID 1: recolhe os processos que o Wine deixa orfaos
+    # (wineserver, SCAPApp); sem ele viram zumbis ate acabar o limite de
+    # processos e o Wine falha com "fork: Resource temporarily unavailable"
+    init: true
     environment:
       PERF_PASSWORD: ${PERF_PASSWORD:?defina PERF_PASSWORD no arquivo .env}
       PERF_WORKERS: ${PERF_WORKERS:-}
