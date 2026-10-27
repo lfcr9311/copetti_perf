@@ -12,8 +12,5 @@ x64/
 Debug/
 *.bak
 # licenca da ATR (SCAP APS): nunca no Git (repositorio publico)
-engines/atr/SCAP_APS_2.7.1/License
-engines/atr/SCAP_APS_2.7.1/LicenseKey
-engines/atr/SCAP_APS_2.7.1/*.zip
 # manuais dos fabricantes (proprietarios): so local, nunca no Git (repositorio publico)
 docs/manuals/
