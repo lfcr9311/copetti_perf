@@ -23,12 +23,11 @@ import platform
 import shutil
 import struct
 import subprocess
-import threading
 from dataclasses import dataclass
 from typing import Optional
 
 from ..catalog.airports import load_airports
-from ..paths import LOADER, WORK_DIR, drop_broken_link, find_file
+from ..paths import LOADER, WORK_DIR, drop_broken_link, find_file, folder_lock
 
 NA = 9e20
 
@@ -72,7 +71,6 @@ LIMITES = {
     6: "Energia de freio",
 }
 
-_LOCK = threading.Lock()
 
 
 @dataclass
@@ -163,10 +161,10 @@ def entrada_legivel(valores, texto):
     return "\n".join(linhas)
 
 
-def pasta_trabalho(modelo):
-    """work/epouso com o carregador, a DLL, o runtime e as bases (links)."""
+def pasta_trabalho(modelo, slot=""):
+    """work/epouso<slot> com o carregador, a DLL, o runtime e as bases (links)."""
     m = MODELOS[modelo]
-    pasta = WORK_DIR / "epouso"
+    pasta = WORK_DIR / f"epouso{slot}"
     pasta.mkdir(parents=True, exist_ok=True)
     for nome in (m["dll"], *m["copiar"]):
         origem = find_file(nome)
@@ -191,12 +189,12 @@ def pasta_trabalho(modelo):
     return pasta
 
 
-def calcular(modelo, p, timeout=120):
+def calcular(modelo, p, timeout=120, slot=""):
     m = MODELOS[modelo]
     valores, texto = blocos(p, m["tipo"]), m["texto"]
     nin, ain, nout, aout = m["simbolos"]
-    with _LOCK:
-        pasta = pasta_trabalho(modelo)
+    with folder_lock(f"epouso{slot}"):
+        pasta = pasta_trabalho(modelo, slot)
         (pasta / "linpn.bin").write_bytes(linpn(valores))
         (pasta / "linpa.bin").write_bytes(linpa(texto))
         for f in ("loutn.bin", "louta.bin"):

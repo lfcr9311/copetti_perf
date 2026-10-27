@@ -111,14 +111,18 @@ def parse_result(text):
     return (mtow, flap, limit), None
 
 
-def compute(aircraft, variant, runway, temperature, align, slot=0,
-            timeout=180, retries=1, cond=None):
-    folder = prepare_workdir(variant, slot)
+TRACE_E2 = "TRACE_TOF.txt"      # trace da DLL do E2 (aviso NO PERFORMANCE)
+
+
+def _run(folder, aircraft, variant, runway, temperature, align, cond, flap,
+         timeout, retries):
+    """Uma execucao do takeoff_module. Devolve ((mtow, flap, limite) ou None,
+    erro, sem_performance). sem_performance: a DLL do E2 avisou "NO
+    PERFORMANCE" (o takeoff_module escreve o peso estrutural mesmo assim)."""
     (folder / "takeoff_data.dat").write_text(
         data_file(aircraft, variant, runway, temperature, align,
-                  *((cond.wind, cond.qnh, cond.flap, cond.cg, cond.mtow) if cond else ())))
+                  *((cond.wind, cond.qnh, flap, cond.cg, cond.mtow) if cond else (0.0, 1013.25, flap))))
     result = folder / "takeoff_result.dat"
-
     if platform.system() == "Windows":
         cmd = [str(folder / EXE)]
     else:
@@ -126,6 +130,7 @@ def compute(aircraft, variant, runway, temperature, align, slot=0,
     env = dict(os.environ, WINEDEBUG="-all")
     for _ in range(retries + 1):
         result.unlink(missing_ok=True)
+        (folder / TRACE_E2).unlink(missing_ok=True)
         try:
             proc = subprocess.run(cmd, cwd=folder, env=env, timeout=timeout,
                                   stdin=subprocess.DEVNULL,
@@ -141,8 +146,39 @@ def compute(aircraft, variant, runway, temperature, align, slot=0,
         raise ScapError("O takeoff_module nao gerou takeoff_result.dat.\n"
                         + (proc.stdout + proc.stderr).strip()[-1500:])
     values, error = parse_result(result.read_text(errors="replace"))
+    trace = folder / TRACE_E2
+    no_perf = trace.exists() and "NO PERFORMANCE" in trace.read_text(errors="replace").upper()
+    return values, error, no_perf
+
+
+def compute(aircraft, variant, runway, temperature, align, slot=0,
+            timeout=180, retries=1, cond=None):
+    """Roda o takeoff_module. Resultado "peso estrutural" (limite 1) e
+    conferido: o takeoff_module escreve o estrutural quando a DLL nao acha
+    performance (E2: aviso NO PERFORMANCE; E1: na busca do flap otimo, um
+    flap que da erro vira estrutural). Conferencia: o flap informado fixo;
+    se nao valer, cada flap fixo e fica o maior valido."""
+    folder = prepare_workdir(variant, slot)
+    fixed = cond.flap if cond else None
+    run = lambda flap: _run(folder, aircraft, variant, runway, temperature,
+                            align, cond, flap, timeout, retries)
+    values, error, no_perf = run(fixed)
     if error:
         raise ScapError(error)
+    if values[2] == 1:
+        valid = lambda v, e, np: v is not None and not e and not np
+        if fixed is not None:
+            if no_perf:
+                raise ScapError("Sem performance de decolagem nessa condição "
+                                "(a DLL da Embraer não achou peso válido)")
+        else:
+            check = run(values[1])
+            if not valid(*check):
+                found = [r[0] for r in map(run, (1, 2, 3, 4)) if valid(*r)]
+                if not found:
+                    raise ScapError("Sem performance de decolagem nessa condição "
+                                    "(a DLL da Embraer não achou peso válido em nenhum flap)")
+                values = max(found)
     mtow, flap, limit = values
     return {
         "temperature": temperature, "mtow": mtow, "flap": f"FLAP {flap}",

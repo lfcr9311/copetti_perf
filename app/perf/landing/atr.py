@@ -18,7 +18,6 @@ import os
 import platform
 import shutil
 import subprocess
-import threading
 import xml.etree.ElementTree as ET
 from xml.sax.saxutils import escape
 from dataclasses import dataclass
@@ -26,7 +25,7 @@ from typing import Optional
 
 from ..catalog.airports import load_airports
 from ..paths import ATR_PACKAGE as PACOTE
-from ..paths import WORK_DIR, drop_broken_link
+from ..paths import WORK_DIR, drop_broken_link, folder_lock
 
 NA = 9e20
 ARQUIVOS = ("SCAPApp.exe", "SCAPLibrary.dll", "TLAM.dll", "TTAM.dll", "License", "LicenseKey")
@@ -45,7 +44,6 @@ LIMITES = {
 # flap de pouso -> (CONFL(5) pouso, CONFL(3) arremetida), em graus
 FLAPS = {"30": (30, 15)}
 
-_LOCK = threading.Lock()
 
 
 @dataclass
@@ -137,10 +135,10 @@ def ler_saida(texto):
     return arrays, elementos
 
 
-def pasta_trabalho():
+def pasta_trabalho(slot=""):
     if not PACOTE.is_dir():
         raise PousoError(f"Pacote da ATR não encontrado em {PACOTE}")
-    pasta = WORK_DIR / "atrpouso"
+    pasta = WORK_DIR / f"atrpouso{slot}"
     (pasta / "data").mkdir(parents=True, exist_ok=True)
     for nome in ARQUIVOS:
         origem = PACOTE / nome
@@ -158,9 +156,11 @@ def pasta_trabalho():
     return pasta
 
 
-def calcular(p, timeout=180):
-    with _LOCK:
-        pasta = pasta_trabalho()
+def calcular(p, timeout=180, slot=""):
+    """slot: pasta de trabalho (work/atrpouso<slot>); slots diferentes rodam
+    em paralelo."""
+    with folder_lock(f"atrpouso{slot}"):
+        pasta = pasta_trabalho(slot)
         for f in ("entrada.out", "entrada.log", "Error.log"):
             (pasta / f).unlink(missing_ok=True)
         (pasta / "entrada.xml").write_bytes(xml_entrada(p).encode("latin-1"))

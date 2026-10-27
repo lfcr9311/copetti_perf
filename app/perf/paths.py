@@ -65,6 +65,16 @@ def _gunzip(gz):
     return target
 
 
+_FOLDER_LOCKS = {}
+_FOLDER_LOCKS_LOCK = threading.Lock()
+
+
+def folder_lock(name):
+    """Lock de uma pasta de trabalho (um calculo por vez em cada pasta)."""
+    with _FOLDER_LOCKS_LOCK:
+        return _FOLDER_LOCKS.setdefault(name, threading.Lock())
+
+
 def drop_broken_link(path):
     """Apaga um link quebrado (ex. pasta work/ copiada de outra maquina,
     com links para /home/<outro usuario>/...) para ele ser refeito."""

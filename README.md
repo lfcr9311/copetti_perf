@@ -105,6 +105,18 @@ distância sobre a LDA e o peso por critério.
   Extended FWD; A330neo Standard/Alternate/2nd/3rd (mesmo resultado na base).
   Quando a LDA é curta demais para a base ("No possible weight"), a tela explica.
 
+### Pista bloqueada
+Aba **Pista bloqueada**: simula um bloqueio (buraco, aeronave parada) em um ponto da
+pista e varre a posição dele de **De** até **Até**, a cada **Passo** (metros a partir
+da primeira cabeceira da pista física, ex. 15 em 15/33). Para cada posição, as **duas
+cabeceiras** usam só o trecho **antes** do bloqueio, menos a **Margem**:
+TORA/ASDA/TODA e LDA = distância até o bloqueio − margem. Com **Altura** > 0 o bloqueio
+entra como obstáculo na decolagem. Condições (temperatura, vento, QNH) em valor ou
+faixa, como na decolagem. Resultado: por cabeceira, gráfico e tabela de MTOW e peso
+máximo de pouso por posição, e o CSV em `app/results/` (`perf/blocked.py`).
+Decolagem com flap ótimo, CG Standard e MTOW da base; pouso com FULL, A/THR off e
+MLW certificado (`perf/landing/dispatch.py`).
+
 ### Malha
 Aba **Malha**: lê a `data/Malha.csv` (aeroporto de partida na coluna C,
 equipamento na coluna Eqp), calcula todas as pistas de cada aeroporto em todas

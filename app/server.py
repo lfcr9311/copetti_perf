@@ -30,7 +30,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
-from perf import schedule
+from perf import blocked, schedule
 from perf.batch import COLUMNS, condition_columns, result_row, temperatures
 from perf.catalog.aircraft import AIRCRAFT, flap_options
 from perf.catalog.airports import MAX_OBSTACLES, align_values, load_airports, load_toalign
@@ -780,6 +780,83 @@ def pouso_calc(body):
             "grooved": grooved, "mlw_usado": mlw, "mlw_cert": cert}
 
 
+# ---------------------------------------------------------------- pista bloqueada
+
+BLOQUEIO_COLUMNS = ["aircraft", "engine", "icao", "rwy", "position_m", "distance_m", "available_m",
+                    "temp_c", "wind_kt", "crosswind_kt", "qnh_hpa", "tora_m", "asda_m", "toda_m",
+                    "lda_m", "n_obst", "mtow_kg", "flap", "to_limit", "to_error",
+                    "mlw_kg", "ld_limit", "ld_error"]
+
+
+def bloqueio_job(body):
+    """Varre a posicao de um bloqueio na pista (De/Ate/Passo, m a partir da
+    primeira cabeceira) e calcula MTOW e peso de pouso das duas cabeceiras
+    usando so o trecho antes do bloqueio (perf.blocked)."""
+    planes = pick_aircraft(body)
+    if not planes:
+        raise BadRequest("Marque pelo menos uma aeronave")
+    icao = str(body.get("icao") or "").upper()
+    if icao not in AIRPORTS:
+        raise BadRequest(f"Aeroporto {icao or '?'} não está no airports_list.csv")
+    runways = AIRPORTS[icao]["runways"]
+    vals = {k: number(body.get(k), nome) for k, nome in (
+        ("de", "De"), ("ate", "Até"), ("passo", "Passo"), ("margem", "Margem"),
+        ("altura", "Altura do bloqueio"))}
+    if vals["margem"] < 0 or not 0 <= vals["altura"] <= 300:
+        raise BadRequest("Margem não pode ser negativa e a altura vai de 0 a 300 ft")
+    cases = build_cases(body)
+    try:
+        phys = blocked.physical_runway(runways, str(body.get("rwy") or ""))
+        pos = blocked.positions(vals["de"], vals["ate"], vals["passo"])
+    except blocked.BlockedError as e:
+        raise BadRequest(str(e))
+    total = len(planes) * len(phys["ends"]) * len(pos) * len(cases) * 2
+    if total > MAX_TOTAL * 2:
+        raise BadRequest(f"São {total} cálculos (decolagem + pouso); o limite é {MAX_TOTAL * 2}. "
+                         "Aumente o passo ou diminua as faixas.")
+    for ac, v in planes:
+        try:
+            takeoff.check(ac, v)
+        except takeoff.ScapError as e:
+            raise BadRequest(f"{ac.name} {v.display}: {e}")
+    wet = bool(body.get("molhada"))
+
+    def work(job):
+        def progress(done, total):
+            job["done"], job["total"] = done, total
+
+        try:
+            out = blocked.run(planes, runways, body.get("rwy"), vals["de"], vals["ate"],
+                              vals["passo"], vals["margem"], vals["altura"], cases, TOALIGN,
+                              wet=wet, on_progress=progress)
+        except blocked.BlockedError as e:
+            raise BadRequest(str(e))
+        for row in out["rows"]:
+            if row.get("to_limit") is not None:
+                row["to_limit_text"] = limit_text(row["to_limit"])
+        RESULTS_DIR.mkdir(exist_ok=True)
+        name = (f"bloqueio_{icao}_{out['phys']['a']}-{out['phys']['b']}_"
+                f"{vals['de']:g}a{vals['ate']:g}m_passo{vals['passo']:g}_{time.strftime('%Y%m%d-%H%M%S')}.csv")
+        with open(RESULTS_DIR / name, "w", newline="", encoding="utf-8") as f:
+            w = csv.DictWriter(f, BLOQUEIO_COLUMNS)
+            w.writeheader()
+            for r in out["rows"]:
+                w.writerow({"aircraft": r["aircraft"], "engine": r["engine"], "icao": icao,
+                            "rwy": r["end"], "position_m": r["position"], "distance_m": r["distance"],
+                            "available_m": r["available"], "temp_c": r["temp"], "wind_kt": r["wind"],
+                            "crosswind_kt": r["crosswind"], "qnh_hpa": r["qnh"],
+                            "tora_m": r.get("tora"), "asda_m": r.get("asda"), "toda_m": r.get("toda"),
+                            "lda_m": r.get("lda"), "n_obst": r.get("n_obst"),
+                            "mtow_kg": r.get("mtow"), "flap": r.get("flap"),
+                            "to_limit": r.get("to_limit_text"), "to_error": r.get("to_error") or r.get("error"),
+                            "mlw_kg": round(r["mlw"]) if r.get("mlw") is not None else None,
+                            "ld_limit": r.get("ld_limit"), "ld_error": r.get("ld_error") or r.get("error")})
+        return {**out, "icao": icao, "airport": AIRPORTS[icao]["name"].title(), "csv": name,
+                "margem": vals["margem"], "altura": vals["altura"], "molhada": wet}
+
+    return start_job("bloqueio", work)
+
+
 def open_local(path):
     if platform.system() == "Windows":
         os.startfile(path)
@@ -911,6 +988,8 @@ class Handler(BaseHTTPRequestHandler):
                 return self.send_json(malha_job(body))
             if parts == ["api", "pouso"]:
                 return self.send_json(pouso_calc(body))
+            if parts == ["api", "bloqueio"]:
+                return self.send_json(bloqueio_job(body))
             if parts == ["api", "open"]:
                 if SERVER_MODE:
                     raise BadRequest("No servidor, use o botão de download")

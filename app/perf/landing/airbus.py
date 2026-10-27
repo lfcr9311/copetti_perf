@@ -15,12 +15,12 @@ LDA: o airports_list.csv nao tem LDA; sem --lda usa a TORA da pista.
 
 import argparse
 import re
-import threading
 from dataclasses import dataclass
 from typing import Optional
 
 from ..catalog.aircraft import AIRCRAFT, CG_A320, CG_A330NEO, CG_STANDARD
 from ..catalog.airports import load_airports
+from ..paths import folder_lock
 from ..takeoff.airbus import prepare_workdir, run_dll
 
 NA = 9e20
@@ -64,7 +64,6 @@ LIMITES = {
     9: "Distância de pouso com motor inoperante",
 }
 
-_LOCK = threading.Lock()          # uma pasta de trabalho so (work/wpouso)
 
 
 @dataclass
@@ -164,19 +163,24 @@ def ler_climil(texto):
     return [None if float(x) >= NA * 0.99 else float(x) for x in m.group(1).split()]
 
 
-def calcular(variant, p):
+def calcular(variant, p, slot=""):
     """Roda o pouso e devolve mlw, limitante, gradientes, resultados,
-    mensagens e o scap.in. Com p.peso, calcula no peso informado (sem MLW)."""
+    mensagens e o scap.in. Com p.peso, calcula no peso informado (sem MLW).
+    slot: pasta de trabalho (work/wpouso<slot>); calculos em slots
+    diferentes rodam em paralelo."""
     texto = entrada(variant, p)
-    with _LOCK:
-        pasta = prepare_workdir(variant, "pouso")
+    with folder_lock(f"wpouso{slot}"):
+        pasta = prepare_workdir(variant, f"pouso{slot}")
         (pasta / "scap.in").write_text(texto)
         saida = pasta / "SCAP.OUT"
-        saida.unlink(missing_ok=True)
-        proc = run_dll(pasta)
-        if not saida.exists():
-            raise PousoError("A DLL não gerou SCAP.OUT.\n" + (proc.stdout + proc.stderr)[-1500:])
-        out = saida.read_text(errors="replace")
+        for _ in range(3):      # falha esporadica no Wine (OCTOCNF): repetir passa
+            saida.unlink(missing_ok=True)
+            proc = run_dll(pasta)
+            if not saida.exists():
+                raise PousoError("A DLL não gerou SCAP.OUT.\n" + (proc.stdout + proc.stderr)[-1500:])
+            out = saida.read_text(errors="replace")
+            if "OCTOCNF" not in out:
+                break
     principal, flag, msgs = ler_saida(out)
     c = ler_climil(out)
     if flag not in ("A", "D") and not p.peso and not (c and c[0]):

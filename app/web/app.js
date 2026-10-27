@@ -134,12 +134,13 @@ const hideTooltip = () => { tooltip.hidden = true; };
 // ------------------------------------------------------------------ paginas
 document.querySelectorAll(".tabs button").forEach((b) => b.addEventListener("click", () => {
   document.querySelectorAll(".tabs button").forEach((x) => x.setAttribute("aria-selected", x === b));
-  for (const page of ["calc", "malha", "pouso"]) {
+  for (const page of ["calc", "malha", "pouso", "bloqueio"]) {
     const el = $(`#page-${page}`);
     el.hidden = page !== b.dataset.page;
     el.classList.toggle("active", page === b.dataset.page);
   }
   if (b.dataset.page === "pouso") initPouso();
+  if (b.dataset.page === "bloqueio") initBloqueio();
 }));
 
 // ------------------------------------------------------------------ condicoes
@@ -2256,3 +2257,446 @@ function ldDiagram(r, lda) {
   $("#malha-count").textContent = `${countText(malhaForm.count())} por pista`;
   updateCalcButton();
 })();
+
+// ------------------------------------------------------------------ pista bloqueada
+/* Bloqueio (buraco, aeronave parada) num ponto da pista fisica: o usuario
+ * coloca o bloqueio no desenho da pista (ou digita a distancia de uma
+ * cabeceira) e as duas cabeceiras usam so o trecho antes dele. Opcional:
+ * varrer varias posicoes (De/Ate/Passo, m a partir da primeira cabeceira). O app.py calcula MTOW e peso de
+ * pouso (perf/blocked.py); aqui ficam o formulario, os graficos e a tabela. */
+const BL_STORE = "perf.bloqueio";
+const bl = { ready: false, planes: new Set(), airport: null, phys: null, wet: "0", kind: "buraco", pos: 0, result: null, pick: {} };
+const blEl = (id) => $(`#bl-${id}`);
+const blForm = conditionsForm(blEl("conditions"), { onChange: () => blSummary() });
+
+function initBloqueio() {
+  if (bl.ready || !state.meta) return;
+  bl.ready = true;
+  $("#bl-airports").replaceChildren(...state.meta.airports.map((a) =>
+    h("option", { value: a.icao, text: `${a.iata ? a.iata + " · " : ""}${a.name}` })));
+  const saved = load(BL_STORE, {});
+  bl.planes = new Set((saved.planes || []).filter((id) => {
+    const [i, j] = id.split(":").map(Number);
+    return state.meta.aircraft[i]?.variants[j]?.ready;
+  }));
+  bl.wet = saved.wet || "0";
+  bl.kind = saved.kind || (+saved.altura > 0 ? "aeronave" : "buraco");
+  blEl("sweep").open = !!saved.sweep;
+  blEl("single").hidden = !!saved.sweep;
+  if (saved.conds) blForm.setState(saved.conds);
+  for (const k of ["passo", "margem", "altura"]) if (saved[k] != null) blEl(k).value = saved[k];
+  blRenderPlanes(); blRenderWet(); blRenderKind();
+  blEl("icao").value = saved.icao || "";
+  if (saved.icao) blLoadAirport(saved.icao, saved.rwy, saved);
+  blSummary();
+}
+function blRenderPlanes() {
+  blEl("planes").replaceChildren(...state.meta.aircraft.map((a) => {
+    const ready = a.variants.filter((v) => v.ready);
+    const on = ready.filter((v) => bl.planes.has(planeId(a.id, v.id)));
+    return h("div", { class: "plane-row" },
+      h("button", { class: `model-btn${on.length ? " on" : ""}`, type: "button", disabled: !ready.length,
+        onclick: () => {
+          const all = on.length === ready.length;
+          for (const v of ready) bl.planes[all ? "delete" : "add"](planeId(a.id, v.id));
+          blRenderPlanes(); blSummary();
+        } }, a.name),
+      h("div", { class: "pills" }, a.variants.map((v) => h("button", {
+        class: "pill", type: "button", text: v.label, disabled: !v.ready, title: v.reason || "",
+        "aria-pressed": bl.planes.has(planeId(a.id, v.id)),
+        onclick: () => { const id = planeId(a.id, v.id); bl.planes.has(id) ? bl.planes.delete(id) : bl.planes.add(id); blRenderPlanes(); blSummary(); },
+      }))));
+  }));
+}
+function blRenderWet() {
+  const box = blEl("wet");
+  box.replaceChildren(h("span", { text: box.dataset.label }), h("div", { class: "seg full" },
+    [["0", "Seca"], ["1", "Molhada"]].map(([k, text]) => h("button", {
+      type: "button", text, "aria-pressed": bl.wet === k, onclick: () => { bl.wet = k; blRenderWet(); },
+    }))));
+}
+function blRenderKind() {
+  const box = blEl("kind");
+  box.replaceChildren(h("span", { text: box.dataset.label }), h("div", { class: "seg full" },
+    [["buraco", "Buraco"], ["aeronave", "Aeronave / obstáculo"]].map(([k, text]) => h("button", {
+      type: "button", text, "aria-pressed": bl.kind === k, onclick: () => { bl.kind = k; blRenderKind(); },
+    }))));
+  blEl("altura-field").hidden = bl.kind !== "aeronave";
+}
+/** Pistas fisicas do aeroporto (pares de cabeceiras principais, ex. 15/33). */
+function blPhysicals(airport) {
+  const seen = new Map();
+  for (const r of airport.runways) {
+    const m = RWY_RE.exec(r.rwy);
+    if (!m || m[3]) continue;
+    const ph = physicalRunway(airport, r.rwy);
+    if (ph && !seen.has(ph.key)) seen.set(ph.key, ph);
+  }
+  return [...seen.values()];
+}
+async function blLoadAirport(icao, rwy, saved) {
+  icao = icao.trim().toUpperCase();
+  if (!/^[A-Z0-9]{4}$/.test(icao)) return;
+  try { bl.airport = await getAirport(icao); } catch (e) { bl.airport = null; blEl("rwy-info").textContent = e.message; blEl("runways").replaceChildren(); return; }
+  const list = blPhysicals(bl.airport);
+  const ph = list.find((p) => p.a === rwy || p.b === rwy) || list[0];
+  blPickRunway(ph, saved && saved.rwy === ph?.a ? saved : null);
+}
+function blPickRunway(ph, saved) {
+  bl.phys = ph || null;
+  const list = bl.airport ? blPhysicals(bl.airport) : [];
+  blEl("runways").replaceChildren(...list.map((p) => h("button", {
+    class: "pill", type: "button", "aria-pressed": p.key === bl.phys?.key,
+    onclick: () => blPickRunway(p, null),
+  }, `${p.a}/${p.b}`, h("small", { text: kg(p.L) }))));
+  if (!ph) { blEl("rwy-info").textContent = "Sem pista com cabeceiras no cadastro."; return; }
+  const end = (e) => bl.airport.runways.find((r) => r.rwy === e);
+  blEl("rwy-info").textContent = `${bl.airport.name} · pista ${ph.a}/${ph.b}, ${kg(ph.L)} m · `
+    + [ph.a, ph.b].filter(end).map((e) => `${e}: TORA ${kg(end(e).tora)} m`).join(" · ");
+  blEl("place-hint").textContent = "Clique ou arraste o X na pista, ou digite a distância de uma cabeceira.";
+  blEl("dist-a-label").textContent = `Da cabeceira ${ph.a}`;
+  blEl("dist-b-label").textContent = `Da cabeceira ${ph.b}`;
+  for (const el of document.querySelectorAll(".bl-a-name")) el.textContent = ph.a;
+  blEl("de").value = saved?.de ?? 0;
+  blEl("ate").value = saved?.ate ?? ph.L;
+  blEl("de").max = blEl("ate").max = blEl("dist-a").max = blEl("dist-b").max = ph.L;
+  blSetPlace(saved?.pos ?? Math.round(ph.L / 20) * 10);
+  blSummary();
+}
+/** Posicao do bloqueio no formulario (m a partir da cabeceira a), arredondada a 10 m. */
+function blSetPlace(p, from) {
+  if (!bl.phys || !Number.isFinite(p)) return;
+  const L = bl.phys.L;
+  bl.pos = Math.min(L, Math.max(0, from ? p : Math.round(p / 10) * 10));
+  if (from !== "a") blEl("dist-a").value = Math.round(bl.pos);
+  if (from !== "b") blEl("dist-b").value = Math.round(L - bl.pos);
+  blPlaceDraw();
+}
+/** Desenho da pista no formulario com o X do bloqueio (clicar / arrastar / setas). */
+function blPlaceDraw() {
+  const box = blEl("place"), ph = bl.phys;
+  if (!ph) { box.replaceChildren(); return; }
+  const W = Math.max(220, Math.round(box.clientWidth || 300)), H = 74, pad = 30, y0 = 26, rh = 18;
+  const x = (v) => pad + v / ph.L * (W - 2 * pad);
+  const p = bl.pos, sweep = blEl("sweep").open, mg = +blEl("margem").value || 0;
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
+  svg.append(s("rect", { x: x(0), y: y0, width: x(ph.L) - x(0), height: rh, rx: 3, class: "bl-rwy" }),
+    s("line", { x1: x(0) + 6, x2: x(ph.L) - 6, y1: y0 + rh / 2, y2: y0 + rh / 2, class: "bl-centerline" }),
+    s("text", { x: x(0) - 5, y: y0 + rh / 2 + 5, "text-anchor": "end", class: "bl-thr" }, ph.a),
+    s("text", { x: x(ph.L) + 5, y: y0 + rh / 2 + 5, "text-anchor": "start", class: "bl-thr" }, ph.b));
+  if (sweep) {
+    const de = Math.max(0, +blEl("de").value || 0), ate = Math.min(ph.L, +blEl("ate").value || 0);
+    if (ate >= de) svg.append(s("rect", { x: x(de), y: y0 - 4, width: Math.max(2, x(ate) - x(de)), height: rh + 8, rx: 4, class: "bl-range" }));
+  } else {
+    if (mg > 0) svg.append(s("rect", { x: x(Math.max(0, p - mg)), y: y0, height: rh,
+      width: x(Math.min(ph.L, p + mg)) - x(Math.max(0, p - mg)), class: "bl-margin" }));
+    const bx = x(p), cy = y0 + rh / 2;
+    svg.append(s("line", { x1: bx, x2: bx, y1: y0 - 5, y2: y0 + rh + 5, class: "bl-block-line" }),
+      s("circle", { cx: bx, cy, r: 11, class: "bl-handle" }),
+      s("path", { d: `M${bx - 5} ${cy - 5} l10 10 m0 -10 l-10 10`, class: "bl-block-x" }),
+      s("text", { x: (x(0) + bx) / 2, y: y0 - 9, "text-anchor": "middle", class: "bl-place-label" }, `${kg(p)} m`),
+      s("text", { x: (bx + x(ph.L)) / 2, y: y0 + rh + 20, "text-anchor": "middle", class: "bl-place-label" }, `${kg(ph.L - p)} m`));
+  }
+  box.setAttribute("aria-valuemin", 0); box.setAttribute("aria-valuemax", ph.L); box.setAttribute("aria-valuenow", p);
+  box.setAttribute("aria-valuetext", `${kg(p)} m da cabeceira ${ph.a}, ${kg(ph.L - p)} m da cabeceira ${ph.b}`);
+  box.classList.toggle("sweep", sweep);
+  box.replaceChildren(svg);
+}
+{
+  const box = blEl("place");
+  const at = (ev) => {
+    const svg = box.querySelector("svg");
+    if (!svg || !bl.phys || blEl("sweep").open) return;
+    const r = svg.getBoundingClientRect(), W = svg.viewBox.baseVal.width, pad = 30;
+    blSetPlace(((ev.clientX - r.left) * W / r.width - pad) / (W - 2 * pad) * bl.phys.L);
+  };
+  box.addEventListener("pointerdown", (ev) => { box.setPointerCapture(ev.pointerId); at(ev); });
+  box.addEventListener("pointermove", (ev) => { if (box.hasPointerCapture(ev.pointerId)) at(ev); });
+  box.addEventListener("keydown", (ev) => {
+    if (!bl.phys || blEl("sweep").open) return;
+    const step = ev.shiftKey ? 100 : 10;
+    if (ev.key === "ArrowLeft") { ev.preventDefault(); blSetPlace(bl.pos - step); }
+    if (ev.key === "ArrowRight") { ev.preventDefault(); blSetPlace(bl.pos + step); }
+  });
+  new ResizeObserver(() => blPlaceDraw()).observe(box);
+}
+blEl("dist-a").addEventListener("input", (e) => { if (e.target.value !== "") blSetPlace(+e.target.value, "a"); });
+blEl("dist-b").addEventListener("input", (e) => { if (e.target.value !== "" && bl.phys) blSetPlace(bl.phys.L - e.target.value, "b"); });
+for (const k of ["dist-a", "dist-b"]) blEl(k).addEventListener("change", () => blSetPlace(bl.pos));
+blEl("margem").addEventListener("input", () => blPlaceDraw());
+blEl("sweep").addEventListener("toggle", () => { blEl("single").hidden = blEl("sweep").open; blPlaceDraw(); blSummary(); });
+blEl("icao").addEventListener("change", () => blLoadAirport(blEl("icao").value, null));
+blEl("icao").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); blLoadAirport(blEl("icao").value, null); } });
+for (const k of ["de", "ate", "passo"]) blEl(k).addEventListener("input", () => { blSummary(); blPlaceDraw(); });
+
+function blPositions() {
+  if (!blEl("sweep").open) return 1;
+  const de = +blEl("de").value, ate = +blEl("ate").value, passo = +blEl("passo").value;
+  if (!(passo > 0) || !(ate >= de)) return 0;
+  return Math.floor((ate - de) / passo) + 1;
+}
+function blSummary() {
+  if (!bl.ready) return;
+  const n = blPositions(), c = blForm.count(), ends = bl.phys ? 2 : 0;
+  const total = bl.planes.size * ends * n * (c || 0);
+  blEl("summary").textContent = !bl.planes.size ? "Marque pelo menos uma aeronave."
+    : !bl.phys ? "Escolha a pista." : !n ? "Confira De / Até / Passo."
+    : `${n > 1 ? `${n} posições × ` : ""}2 cabeceiras × ${bl.planes.size} motor(es) × ${c || "?"} condição(ões) = ${nfKg.format(total)} decolagens + ${nfKg.format(total)} pousos`;
+  blEl("btn").disabled = !bl.planes.size || !bl.phys || !n || !c;
+}
+function blShow(which, msg) {
+  for (const k of ["empty", "loading", "error", "out"]) blEl(k).hidden = k !== which;
+  if (which === "error") blEl("error").replaceChildren(h("strong", { text: "Não foi possível calcular" }), msg);
+}
+blEl("form").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  if (blEl("btn").disabled) return;
+  const sweep = blEl("sweep").open;
+  const body = {
+    selection: [...bl.planes].map((id) => { const [i, j] = id.split(":"); return { aircraft: +i, variant: +j }; }),
+    icao: bl.airport.icao, rwy: bl.phys.a,
+    de: sweep ? blEl("de").value : bl.pos, ate: sweep ? blEl("ate").value : bl.pos, passo: sweep ? blEl("passo").value : 10,
+    margem: blEl("margem").value || 0, altura: bl.kind === "aeronave" ? blEl("altura").value || 0 : 0,
+    molhada: bl.wet === "1", ...blForm.spec(),
+  };
+  save(BL_STORE, { planes: [...bl.planes], wet: bl.wet, conds: blForm.getState(), icao: bl.airport.icao, rwy: bl.phys.a,
+    pos: bl.pos, kind: bl.kind, sweep, de: blEl("de").value, ate: blEl("ate").value, passo: blEl("passo").value,
+    margem: body.margem, altura: blEl("altura").value });
+  blEl("btn").disabled = true;
+  blEl("progress").style.width = "0";
+  blEl("loading-text").textContent = "Calculando…";
+  blShow("loading");
+  try {
+    const start = await api("/api/bloqueio", body);
+    const job = await pollJob(start.id, (j) => {
+      if (j.total) {
+        blEl("progress").style.width = `${(100 * j.done / j.total).toFixed(1)}%`;
+        blEl("loading-text").textContent = `Calculando… ${nfKg.format(j.done)} de ${nfKg.format(j.total)}`;
+      }
+    });
+    if (job.state === "error") throw new Error(job.error);
+    bl.result = job.result; bl.pick = {};
+    blRender();
+  } catch (err) {
+    blShow("error", err.message);
+  } finally {
+    blSummary();
+  }
+});
+
+const blPlane = (r) => `${r.aircraft} ${r.engine}`;
+const blCase = (r) => `${r.temp}|${r.wind}|${r.crosswind}|${r.qnh}`;
+const blCaseText = (r) => `${tempText(r.temp)} · ${windText(r.wind, r.crosswind)} · QNH ${qnhText(r.qnh)}`;
+/* Cor por cabeceira (categorica, ordem fixa: 1a cabeceira c1, 2a c2), a
+ * mesma no desenho, nos graficos e nos destaques. */
+const BL_COLORS = ["var(--c1)", "var(--c2)"];
+const BL_M = { l: 64, r: 36 };          // margens: desenho e graficos alinhados no mesmo eixo X
+const blWidth = () => Math.max(320, Math.round(blEl("strip").clientWidth || 800));
+/** Marcas "redondas" (1, 2, 2,5 ou 5 × 10^n) entre lo e hi, ~n marcas. */
+function niceTicks(lo, hi, n) {
+  const raw = (hi - lo) / Math.max(1, n), mag = 10 ** Math.floor(Math.log10(raw));
+  const step = [1, 2, 2.5, 5, 10].map((k) => k * mag).find((st) => st >= raw);
+  const out = [];
+  for (let v = Math.ceil(lo / step) * step; v <= hi + 1e-9; v += step) out.push(Math.round(v * 1e6) / 1e6);
+  return out;
+}
+
+function blRender() {
+  const res = bl.result, ph = res.phys;
+  const planes = [...new Set(res.rows.map(blPlane))];
+  const cases = [...new Map(res.rows.map((r) => [blCase(r), r])).values()];
+  bl.pick.plane = planes.includes(bl.pick.plane) ? bl.pick.plane : planes[0];
+  bl.pick.case = cases.some((c) => blCase(c) === bl.pick.case) ? bl.pick.case : blCase(cases[0]);
+  bl.ends = Object.keys(ph.ends);
+  bl.rows = res.rows.filter((r) => blPlane(r) === bl.pick.plane && blCase(r) === bl.pick.case);
+  if (!res.positions.includes(bl.pick.pos)) {     // comeca na posicao do meio da pista
+    bl.pick.pos = res.positions.reduce((a, b) => (Math.abs(b - ph.L / 2) < Math.abs(a - ph.L / 2) ? b : a));
+  }
+  blEl("title").textContent = `${res.icao} · pista ${ph.a}/${ph.b} · ${res.airport}`;
+  const tag = (label, value) => h("span", {}, label, h("b", { text: value }));
+  blEl("tags").replaceChildren(tag("Pista", `${kg(ph.L)} m`), tag("Margem", `${kg(res.margem)} m`),
+    tag("Bloqueio", res.altura > 0 ? `obstáculo de ${kg(res.altura)} ft` : "buraco (sem altura)"),
+    h("span", { text: `pouso em pista ${res.molhada ? "molhada" : "seca"}` }),
+    ...(res.positions.length > 1 ? [tag("Varredura", `${kg(res.positions[0])} a ${kg(res.positions.at(-1))} m, ${res.positions.length} posições`)] : []));
+  blEl("csv").href = fileUrl(res.csv);
+  const seg = (label, list, cur, text, pick) => list.length < 2 ? null : h("div", { class: "bl-pick" }, h("span", { text: label }),
+    h("div", { class: "seg" }, list.map((k) => h("button", { type: "button", text: text(k), "aria-pressed": k === cur, onclick: () => { pick(k); blRender(); } }))));
+  blEl("pickers").replaceChildren(...[
+    seg("Aeronave", planes, bl.pick.plane, (k) => k, (k) => { bl.pick.plane = k; }),
+    seg("Condição", cases.map(blCase), bl.pick.case, (k) => blCaseText(cases.find((c) => blCase(c) === k)), (k) => { bl.pick.case = k; }),
+  ].filter(Boolean));
+  const slider = blEl("slider");
+  slider.max = res.positions.length - 1;
+  slider.value = res.positions.indexOf(bl.pick.pos);
+  const many = res.positions.length > 1;            // um ponto so: desenho e destaques bastam
+  $(".bl-stepper").hidden = !many;
+  blEl("charts").hidden = !many;
+  $(".bl-table-box").hidden = !many;
+  blShow("out");
+  blDrawAll();
+}
+/** Redesenha o que depende da posicao escolhida e da largura. */
+function blDrawAll() {
+  if (!bl.result) return;
+  blStrip(); blHero();
+  if (bl.result.positions.length < 2) return;
+  blEl("charts").replaceChildren(
+    blChart("mtow", "Decolagem · MTOW", "to_limit_text", "to_error"),
+    blChart("mlw", "Pouso · peso máximo de pouso", "ld_limit", "ld_error"));
+  blTable();
+}
+function blSetPos(p) {
+  if (p == null || p === bl.pick.pos) return;
+  bl.pick.pos = p;
+  blEl("slider").value = bl.result.positions.indexOf(p);
+  blDrawAll();
+}
+blEl("slider").addEventListener("input", (e) => blSetPos(bl.result.positions[+e.target.value]));
+blEl("prev").addEventListener("click", () => blSetPos(bl.result?.positions[Math.max(0, +blEl("slider").value - 1)]));
+blEl("next").addEventListener("click", () => blSetPos(bl.result?.positions[Math.min(bl.result.positions.length - 1, +blEl("slider").value + 1)]));
+new ResizeObserver(() => { if (!blEl("out").hidden) blDrawAll(); }).observe(blEl("strip"));
+
+const blRow = (end, p) => bl.rows.find((r) => r.end === end && r.position === p);
+/** Desenho da pista fisica: bloqueio, margem e o trecho usado por cada cabeceira. */
+function blStrip() {
+  const ph = bl.result.phys, L = ph.L, p = bl.pick.pos, mg = bl.result.margem;
+  const W = blWidth(), H = 132, x = (v) => BL_M.l + v / L * (W - BL_M.l - BL_M.r), y0 = 56, rh = 22;
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, class: "bl-strip-svg", role: "img",
+    "aria-label": `Pista ${ph.a}/${ph.b} com bloqueio a ${kg(p)} m da cabeceira ${ph.a}` });
+  // pista
+  svg.append(s("rect", { x: x(0), y: y0, width: x(L) - x(0), height: rh, rx: 3, class: "bl-rwy" }),
+    s("line", { x1: x(0) + 8, x2: x(L) - 8, y1: y0 + rh / 2, y2: y0 + rh / 2, class: "bl-centerline" }),
+    s("text", { x: x(0) - 8, y: y0 + rh / 2 + 5, "text-anchor": "end", class: "bl-thr" }, ph.a),
+    s("text", { x: x(L) + 8, y: y0 + rh / 2 + 5, "text-anchor": "start", class: "bl-thr" }, ph.b));
+  // trecho usado por cada cabeceira (acima: 1a cabeceira -> bloqueio; abaixo: 2a cabeceira -> bloqueio)
+  bl.ends.forEach((end, i) => {
+    const r = blRow(end, p), first = end === ph.a, color = BL_COLORS[i];
+    const from = first ? 0 : L, to = first ? Math.max(0, p - mg) : Math.min(L, p + mg);
+    const yy = first ? y0 - 16 : y0 + rh + 16, ok = r && r.available >= 300;
+    svg.append(s("line", { x1: x(from), x2: x(to), y1: yy, y2: yy, stroke: ok ? color : "var(--muted)", "stroke-width": 4,
+      "stroke-linecap": "round", "stroke-dasharray": ok ? null : "4 5" }));
+    svg.append(s("path", { d: first ? `M${x(to)} ${yy} l-7 -5 v10 z` : `M${x(to)} ${yy} l7 -5 v10 z`, fill: ok ? color : "var(--muted)" }));
+    const label = r ? `${end}: ${kg(Math.max(0, r.available))} m${W < 560 ? "" : " disponíveis"}` : end;
+    const half = label.length * 3.4 + 4;          // ~metade da largura do texto (12 px)
+    const lx = Math.min(W - half - 2, Math.max(half + 2, (x(from) + x(to)) / 2));
+    svg.append(s("text", { x: lx, y: first ? yy - 9 : yy + 19, "text-anchor": "middle", class: "bl-strip-label" }, label));
+  });
+  // margem e bloqueio
+  if (mg > 0) svg.append(s("rect", { x: x(Math.max(0, p - mg)), y: y0, width: x(Math.min(L, p + mg)) - x(Math.max(0, p - mg)),
+    height: rh, class: "bl-margin" }));
+  const bx = x(p);
+  svg.append(s("line", { x1: bx, x2: bx, y1: y0 - 6, y2: y0 + rh + 6, class: "bl-block-line" }),
+    s("path", { d: `M${bx - 7} ${y0 + rh / 2 - 7} l14 14 m0 -14 l-14 14`, class: "bl-block-x" }));
+  blEl("strip").replaceChildren(svg);
+  blEl("where-sub").textContent = `Bloqueio a ${kg(p)} m da cabeceira ${ph.a} (${kg(L - p)} m da ${ph.b})`
+    + (mg > 0 ? ` · margem de ${kg(mg)} m de cada lado` : "") + (bl.result.altura > 0 ? ` · obstáculo de ${kg(bl.result.altura)} ft` : "");
+}
+/** Destaque da posicao escolhida: MTOW e pouso de cada cabeceira. */
+function blHero() {
+  const p = bl.pick.pos;
+  blEl("hero").replaceChildren(...bl.ends.map((end, i) => {
+    const r = blRow(end, p);
+    const val = (k, lim, err) => {
+      if (!r) return h("dd", { text: "–" });
+      if (r[k] != null) return h("dd", {}, h("span", { class: "bl-big", text: kg(r[k]) }), h("small", { text: " kg" }), h("em", { text: r[lim] || "" }));
+      return h("dd", {}, h("span", { class: "bl-big muted", text: "–" }), h("em", { text: r.error || (k === "mtow" ? "sem peso de decolagem" : "sem peso de pouso (LDA curta)"), title: r[err] || "" }));
+    };
+    return h("div", { class: "bl-hero-card", style: `--bl-color:${BL_COLORS[i]}` },
+      h("p", { class: "bl-hero-end" }, h("i"), `Cabeceira ${end}`, h("small", { text: r ? ` · ${kg(Math.max(0, r.available))} m disponíveis` : "" })),
+      h("dl", {}, h("div", {}, h("dt", { text: "Decolagem (MTOW)" }), val("mtow", "to_limit_text", "to_error")),
+        h("div", {}, h("dt", { text: "Pouso (peso máximo)" }), val("mlw", "ld_limit", "ld_error"))));
+  }));
+}
+/** Grafico de uma grandeza (MTOW ou pouso): X = posicao do bloqueio ao longo
+ * da pista (mesma escala do desenho), uma linha por cabeceira. */
+function blChart(key, title, limKey, errKey) {
+  const ph = bl.result.phys, L = ph.L, W = blWidth(), H = 250, m = { ...BL_M, t: 16, b: 44 };
+  const x = (v) => m.l + v / L * (W - m.l - m.r);
+  const lines = bl.ends.map((end, i) => ({ end, color: BL_COLORS[i],
+    pts: bl.rows.filter((r) => r.end === end && r[key] != null).sort((a, b) => a.position - b.position) }));
+  const vals = lines.flatMap((l) => l.pts.map((r) => r[key]));
+  const box = h("section", { class: "surface bl-chart" }, h("header", { class: "ld-sec-head" }, h("h3", { text: title }),
+    h("div", { class: "legend" }, lines.map((l) => h("span", {}, h("i", { style: `background:${l.color}` }), `Cabeceira ${l.end}`)))));
+  if (!vals.length) { box.append(h("p", { class: "muted", text: "Nenhuma posição com resultado." })); return box; }
+  let y0 = Math.min(...vals), y1 = Math.max(...vals);
+  const pad = Math.max(500, (y1 - y0) * 0.1);
+  const yt = niceTicks(Math.max(0, y0 - pad), y1 + pad, 4);
+  y0 = Math.min(yt[0], y0); y1 = Math.max(yt.at(-1), y1);
+  const y = (v) => H - m.b - (v - y0) / (y1 - y0) * (H - m.t - m.b);
+  const svg = s("svg", { viewBox: `0 0 ${W} ${H}`, width: W, height: H, role: "img", "aria-label": `${title} por posição do bloqueio` });
+  for (const v of yt) {
+    svg.append(s("line", { class: "gridline", x1: m.l, x2: W - m.r, y1: y(v), y2: y(v) }),
+      s("text", { class: "tick", x: m.l - 8, y: y(v) + 4, "text-anchor": "end" }, kg(v)));
+  }
+  const xt = niceTicks(0, L, Math.max(2, Math.min(8, Math.floor((W - m.l - m.r) / 90))));
+  for (const v of xt) {
+    svg.append(s("line", { class: "gridline", x1: x(v), x2: x(v), y1: H - m.b, y2: H - m.b + 4 }),
+      s("text", { class: "tick", x: x(v), y: H - m.b + 18, "text-anchor": "middle" }, kg(v)));
+  }
+  svg.append(s("line", { class: "baseline", x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b }),
+    s("text", { class: "axis-title", x: (m.l + W - m.r) / 2, y: H - 6, "text-anchor": "middle" }, `Posição do bloqueio (m a partir da cabeceira ${ph.a})`));
+  // posicao escolhida
+  svg.append(s("line", { class: "bl-sel-line", x1: x(bl.pick.pos), x2: x(bl.pick.pos), y1: m.t, y2: H - m.b }));
+  for (const l of lines) {
+    if (l.pts.length > 1) svg.append(s("polyline", { fill: "none", stroke: l.color, "stroke-width": 2, "stroke-linejoin": "round",
+      points: l.pts.map((r) => `${x(r.position)},${y(r[key])}`).join(" ") }));
+    for (const r of l.pts) svg.append(s("circle", { cx: x(r.position), cy: y(r[key]), r: r.position === bl.pick.pos ? 6 : 4,
+      fill: l.color, stroke: "var(--surface)", "stroke-width": 2 }));
+    const last = l.pts.at(l.end === ph.a ? -1 : 0);        // rotulo direto na ponta de maior peso
+    if (last && l.pts.length) svg.append(s("text", { class: "end-label", x: x(last.position) + (l.end === ph.a ? -8 : 8),
+      y: Math.max(m.t + 12, y(last[key]) - 10), "text-anchor": l.end === ph.a ? "end" : "start" }, l.end));
+  }
+  // camada de hover: crosshair na posicao mais proxima; clique escolhe a posicao
+  const cross = s("line", { class: "crosshair", y1: m.t, y2: H - m.b, visibility: "hidden" });
+  const overlay = s("rect", { class: "overlay", x: m.l, y: m.t, width: W - m.l - m.r, height: H - m.t - m.b, tabindex: 0 });
+  const nearest = (ev) => {
+    const r = svg.getBoundingClientRect(), v = ((ev.clientX - r.left) * W / r.width - m.l) / (W - m.l - m.r) * L;
+    return bl.result.positions.reduce((a, b) => (Math.abs(b - v) < Math.abs(a - v) ? b : a));
+  };
+  overlay.addEventListener("mousemove", (ev) => {
+    const p = nearest(ev);
+    cross.setAttribute("x1", x(p)); cross.setAttribute("x2", x(p)); cross.setAttribute("visibility", "visible");
+    showTooltip(h("div", {}, h("div", { class: "tt-title", text: `Bloqueio a ${kg(p)} m` }),
+      ...lines.map((l) => {
+        const r = blRow(l.end, p);
+        return h("div", { class: "tt-row" }, h("i", { style: `background:${l.color}` }), h("span", { text: `Cabeceira ${l.end}` }),
+          h("b", { text: r?.[key] != null ? `${kg(r[key])} kg` : "–" }),
+          h("div", { class: "tt-detail", text: r ? (r[key] != null ? r[limKey] : r.error || "sem resultado") + ` · ${kg(Math.max(0, r.available))} m disp.` : "" }));
+      }), h("div", { class: "tt-detail", text: "clique para escolher esta posição" })), ev.clientX, ev.clientY);
+  });
+  overlay.addEventListener("mouseleave", () => { cross.setAttribute("visibility", "hidden"); hideTooltip(); });
+  overlay.addEventListener("click", (ev) => { hideTooltip(); blSetPos(nearest(ev)); });
+  overlay.addEventListener("keydown", (ev) => {
+    const i = bl.result.positions.indexOf(bl.pick.pos);
+    if (ev.key === "ArrowLeft" && i > 0) blSetPos(bl.result.positions[i - 1]);
+    if (ev.key === "ArrowRight" && i < bl.result.positions.length - 1) blSetPos(bl.result.positions[i + 1]);
+  });
+  svg.append(cross, overlay);
+  box.append(h("div", { class: "chart" }, svg));
+  return box;
+}
+function blTable() {
+  const ends = bl.ends, positions = bl.result.positions;
+  const cell = (r, k, lim, err) => {
+    if (!r) return [h("td", { text: "–" }), h("td", { text: "" })];
+    if (r[k] != null) return [h("td", { class: "num", text: kg(r[k]) }), h("td", { class: "muted", text: r[lim] || "" })];
+    const msg = r.error || r[err] || "";
+    const short = r.error ? "trecho curto" : k === "mtow" ? "sem peso" : "LDA curta";
+    return [h("td", { class: "num muted", text: "–", title: msg }), h("td", { class: "muted bl-err", text: short, title: msg })];
+  };
+  const head = h("tr", {}, h("th", { text: "Bloqueio" }), ...ends.flatMap((e, i) => [
+    h("th", { class: "bl-first bl-end" }, h("i", { style: `background:${BL_COLORS[i]}` }), `${e} · disponível`),
+    ...["MTOW (kg)", "Limitante", "Pouso (kg)", "Limitante"].map((t) => h("th", { text: t }))]));
+  const body = positions.map((p) => h("tr", { class: p === bl.pick.pos ? "bl-sel" : null, onclick: () => blSetPos(p) },
+    h("td", { class: "num", text: `${kg(p)} m` }), ...ends.flatMap((e) => {
+      const r = blRow(e, p);
+      return [h("td", { class: "num bl-first", text: r ? `${kg(Math.max(0, r.available))} m` : "–" }),
+        ...cell(r, "mtow", "to_limit_text", "to_error"), ...cell(r, "mlw", "ld_limit", "ld_error")];
+    })));
+  blEl("table").replaceChildren(h("table", { class: "data bl-table" }, h("thead", {}, head), h("tbody", {}, body)));
+  const wrap = blEl("table"), row = wrap.querySelector("tr.bl-sel"), thead = wrap.querySelector("thead");
+  if (row) {                     // rola so a tabela (nunca a pagina) ate a linha escolhida
+    const top = row.offsetTop - (thead?.offsetHeight || 0), bottom = row.offsetTop + row.offsetHeight;
+    if (top < wrap.scrollTop || bottom > wrap.scrollTop + wrap.clientHeight) wrap.scrollTop = top - wrap.clientHeight / 3;
+  }
+}
