@@ -15,9 +15,14 @@ RUN dpkg --add-architecture i386 \
 RUN useradd --create-home --uid 1000 perf
 USER perf
 ENV WINEPREFIX=/home/perf/.wine WINEDEBUG=-all
+# Wine Mono (.NET do Wine): o SCAPApp.exe do pouso ATR e .NET. O Debian nao
+# empacota; o wineboot instala sozinho o .msi que estiver em ~/.cache/wine
+# (versao casada com o Wine 8.0 do bookworm)
+ADD --chown=perf:perf https://dl.winehq.org/wine/wine-mono/7.4.0/wine-mono-7.4.0-x86.msi /home/perf/.cache/wine/
 # cria o prefixo do Wine uma vez, na construcao da imagem
 # (sem tela: avisos de display sao normais e nao atrapalham)
-RUN (wineboot --init || true) && (wineserver --wait || true)
+RUN (wineboot --init || true) && (wineserver --wait || true) \
+ && test -d "$WINEPREFIX/drive_c/windows/mono" && rm -rf /home/perf/.cache/wine
 
 WORKDIR /app
 COPY --chown=perf:perf . /app
