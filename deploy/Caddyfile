@@ -1,0 +1,14 @@
+# Caddy da porta 80/443 (servico "caddy" do docker-compose.yml).
+# PERF_DOMAIN vazio = so http na porta 80; com dominio, HTTPS automatico.
+{$PERF_DOMAIN} {
+	# mapa / planejador FMS (repositorio mega_map, ~/mega_map no EC2). O container
+	# fmsnav entra na rede deste compose e ja responde em /map, sem tirar o prefixo.
+	# So /map e /map/...: /mapa, /maps etc. continuam no motor
+	@mapa path /map /map/*
+	handle @mapa {
+		reverse_proxy fmsnav:8001
+	}
+
+	# todo o resto: motor de calculo
+	reverse_proxy perf:8765
+}

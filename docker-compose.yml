@@ -24,9 +24,12 @@ services:
       - "80:80"
       - "443:443"
     # com PERF_DOMAIN (ex. perf.suaempresa.com) o Caddy pega o certificado
-    # HTTPS sozinho; sem dominio, fica so em http na porta 80
-    command: caddy reverse-proxy --from ${PERF_DOMAIN:-:80} --to perf:8765
+    # HTTPS sozinho; sem dominio, fica so em http na porta 80.
+    # Rotas em deploy/Caddyfile: /map vai para o mapa (~/mega_map), o resto para o perf
+    environment:
+      PERF_DOMAIN: ${PERF_DOMAIN:-:80}
     volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
 
 volumes:
