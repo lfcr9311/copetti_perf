@@ -2179,7 +2179,7 @@ function ldResultado(r, body) {
       tile("Limitado por", r.limitante || "–", "wide"), tile("Flap", flap),
       tile(a.fabricante === "airbus" ? "VAPP" : "VREF", kt(r.vapp)), tile("Gradiente de arremetida", pct(r.gradiente_arremetida)),
       tile("Gradiente de subida de pouso", pct(r.gradiente_pouso)),
-      ...(r.mlw == null || r.erflag && !"AD".includes(r.erflag[0]) ? [tile("Motor", [r.erflag && `ERFLAG ${r.erflag}`, ...r.mensagens.slice(0, 2)].filter(Boolean).join(" · ") || "sem resultado", "full")] : [])));
+      ...(r.mlw == null || r.erflag && !"ADF".includes(r.erflag[0]) ? [tile("Motor", [r.erflag && `ERFLAG ${r.erflag}`, ...r.mensagens.slice(0, 2)].filter(Boolean).join(" · ") || "sem resultado", "full")] : [])));
   ldDiagram(r, +body.lda);
   // limites por criterio
   const crit = [["Distância (LDA)", "WEIGHT LIMITED BY LDA"], ["Arremetida", "WEIGHT LIMITED BY ACG"],

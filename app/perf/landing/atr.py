@@ -71,19 +71,23 @@ class PousoError(Exception):
 
 
 def blocos(p):
-    P = {1: 0, 2: 1 if p.molhada else 0, 5: 0, 7: 11,
+    # pista molhada (acerto com o engenheiro): modo operacional POPTL(36) = 1,
+    # que exige a acao de frenagem POPTL(4) (5 = Good, pista molhada no RCAM),
+    # credito de reverso CONFL(10) = 1 e LDA informada dividida por 1,15
+    rev = 1 if p.molhada else p.reverso
+    P = {1: 0, 2: 1 if p.molhada else 0, **({4: 5} if p.molhada else {}), 5: 0, 7: 11,
          8: 1 if p.mlw else 0, **({9: p.mlw} if p.mlw else {}),
          12: 0, 13: 0, 15: 0, 16: 0,
          17: 1 if p.ga_grad else 0, **({18: p.ga_grad} if p.ga_grad else {}),
          19: 0, 21: 0, 23: 0, 25: 0, 26: 0, 29: 0, 34: 0,
-         36: 0,          # despacho / RLD
-         38: 0}          # wet check
+         36: 1 if p.molhada else 0,   # despacho / RLD
+         38: 0}                       # wet check: sempre 0 (seca e molhada)
     C = {1: 1, 2: 0, 3: p.flap_arremetida, 4: 0, 5: p.flap_pouso,
-         6: 2, 7: 6 if p.icing else 0, 9: 0, 10: p.reverso,
-         **({11: 0} if p.reverso else {}),
+         6: 2, 7: 6 if p.icing else 0, 9: 0, 10: rev,
+         **({11: 0} if rev else {}),
          12: 0, 15: 0, 18: 0, 19: 0, 21: 0, 24: 0, 30: 1, 41: 0, 45: p.boost}
     X = {1: p.temp, 2: p.vento, 4: 1, 5: p.qnh}
-    R = {1: p.elev, 2: p.lda, 3: p.slope, 4: 0, 5: 1, 6: 0}
+    R = {1: p.elev, 2: p.lda / 1.15 if p.molhada else p.lda, 3: p.slope, 4: 0, 5: 1, 6: 0}
     U = {1: 0, 3: 0, 4: 1, 5: 1, 6: 0, 8: 0, 9: 2}
     return {"POPTL": P, "CONFL": C, "XMETL": X, "RWYDL": R, "UNITL": U}
 
