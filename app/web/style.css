@@ -320,6 +320,10 @@ code { font-size: 12px; background: var(--surface-3); padding: 1px 5px; border-r
 .hero-value { font-size: 68px; font-weight: 750; letter-spacing: -.04em; line-height: 1; color: var(--brand); }
 .hero-value small { font-size: 22px; font-weight: 500; margin-left: 6px; color: var(--muted); letter-spacing: 0; }
 .hero-label { color: var(--ink-2); margin-top: 10px; }
+.hero > .error-box, .entrada { grid-column: 1 / -1; }
+.entrada summary { cursor: pointer; color: var(--ink-2); font-size: 13px; }
+.entrada pre { margin-top: 8px; max-height: 420px; overflow: auto; padding: 12px 14px; border-radius: 10px;
+  background: var(--surface-3); font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre; }
 .hero-side { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
 .tile { background: var(--surface-2); border: 1px solid var(--line); border-radius: 11px; padding: 12px 14px; margin: 0; }
 .tile dt { font-size: 11.5px; color: var(--muted); font-weight: 650; }

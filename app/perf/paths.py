@@ -23,7 +23,6 @@ WEB_DIR = APP_DIR / "web"
 ASSETS_DIR = APP_DIR / "assets"
 TEMPLATES_DIR = Path(__file__).resolve().parent / "takeoff" / "templates"
 
-ATR_SO = ENGINES_DIR / "atr" / "DllWrapperATR.so"
 ATR_PACKAGE = ENGINES_DIR / "atr" / "SCAP_APS_2.7.1"
 LOADER = ENGINES_DIR / "loader" / "scaploader.exe"
 

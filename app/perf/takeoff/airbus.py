@@ -113,7 +113,7 @@ def build_input(example_text, aircraft, variant, runway=None,
                 temperature=None, align=None, cond=None):
     """Copia o scap.in.example trocando o TINPA (ACMDBI, MISCLA, CERTIF) e,
     se informados, a temperatura (XMET 1), o vento e o QNH (XMET 2, 3, 5),
-    o flap (CONF 1/2), o limite de CG (POPT 30), o MTOW estrutural (POPT 24),
+    o flap (CONF 1/2), o ar-condicionado (CONF 4), o limite de CG (POPT 30), o MTOW estrutural (POPT 24),
     a pista (RWYD), os obstaculos (OBSD) e o alinhamento (POPT 12/13). O
     resto fica como no exemplo."""
     lines = example_text.splitlines(keepends=True)
@@ -130,6 +130,7 @@ def build_input(example_text, aircraft, variant, runway=None,
             set_values(lines, "POPT", {30: cond.cg})
         if cond.mtow:                   # peso estrutural (MTOW) escolhido
             set_values(lines, "POPT", {24: cond.mtow})
+        set_values(lines, "CONF", {4: 1 if cond.aircond else 2})   # ar-condicionado
     if runway is not None:
         wet = read_value(example_text, "POPT", 14) == 1
         replace_block(lines, "RWYD", rwyd_values(runway, aircraft.actype, wet))
@@ -270,7 +271,14 @@ def compute(aircraft, variant, runway=None, temperature=None, slot=0,
                              cond)
     folder = prepare_workdir(variant, slot)
     (folder / "scap.in").write_text(input_text)
+    try:
+        return _run(folder, aircraft, input_text, retries)
+    except ScapError as e:
+        e.entrada = input_text
+        raise
 
+
+def _run(folder, aircraft, input_text, retries):
     out_path = folder / "SCAP.OUT"
     for _ in range(retries + 1):
         out_path.unlink(missing_ok=True)
@@ -303,4 +311,5 @@ def compute(aircraft, variant, runway=None, temperature=None, slot=0,
         "main": main,
         "erflag": out["erflag"],
         "errmsg": out["errmsg"],
+        "entrada": input_text,
     }

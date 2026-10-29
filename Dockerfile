@@ -1,21 +1,21 @@
-# Performance de Decolagem: tela + calculo (Airbus e Embraer pelo Wine, ATR
-# pelo .so) num container so. Construir a partir da pasta fortran/:
+# Performance de Decolagem: tela + calculo (Airbus, Embraer e ATR pelo Wine)
+# num container so. Construir a partir da pasta fortran/:
 #   docker compose up -d --build        (ver docs/DOCKER.md)
 FROM debian:bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive
 # Wine de 32 bits (scap_octopus.dll e takeoff_module.exe sao Windows 32 bits),
-# Python e a libgfortran do DllWrapperATR.so
+# Python; o ATR roda pelo SCAPApp.exe (.NET) no Wine com o Wine Mono
 RUN dpkg --add-architecture i386 \
  && apt-get update \
  && apt-get install -y --no-install-recommends \
-        wine wine32 wine64 python3 libgfortran5 ca-certificates \
+        wine wine32 wine64 python3 ca-certificates \
  && rm -rf /var/lib/apt/lists/*
 
 RUN useradd --create-home --uid 1000 perf
 USER perf
 ENV WINEPREFIX=/home/perf/.wine WINEDEBUG=-all
-# Wine Mono (.NET do Wine): o SCAPApp.exe do pouso ATR e .NET. O Debian nao
+# Wine Mono (.NET do Wine): o SCAPApp.exe do ATR (decolagem e pouso) e .NET. O Debian nao
 # empacota; o wineboot instala sozinho o .msi que estiver em ~/.cache/wine
 # (versao casada com o Wine 8.0 do bookworm)
 ADD --chown=perf:perf https://dl.winehq.org/wine/wine-mono/7.4.0/wine-mono-7.4.0-x86.msi /home/perf/.cache/wine/

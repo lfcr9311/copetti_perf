@@ -7,7 +7,9 @@ from ..paths import find_file
 
 
 class ScapError(Exception):
-    pass
+    """entrada: o arquivo de entrada do motor (scap.in, XML do ATR,
+    takeoff_data.dat), quando ja montado; a tela mostra."""
+    entrada = None
 
 
 @dataclass(frozen=True)
@@ -22,13 +24,16 @@ class Conditions:
     cg: limite dianteiro de CG (POPT 30): 0 = Standard, 1 = Alternate...
     (opcoes de cada aeronave em Aircraft.cg).
     mtow: peso estrutural maximo de decolagem (POPT 24, kg); None = o da
-    base (scap.in exemplo no Airbus, Variant.mtow no ATR/Embraer)."""
+    base (scap.in exemplo no Airbus, Variant.mtow no ATR/Embraer).
+    aircond: ar-condicionado (packs) na decolagem, CONF 4 (1 = ON, 2 = OFF);
+    Airbus e ATR. O takeoff_module do Embraer fixa OFF."""
     wind: float = 0.0
     crosswind: float = 0.0
     qnh: float = 1013.25
     flap: "int | None" = None
     cg: int = 0
     mtow: "float | None" = None
+    aircond: bool = False
 
     def describe(self):
         parts = []
@@ -40,7 +45,7 @@ class Conditions:
             side = "direita" if self.crosswind > 0 else "esquerda"
             parts.append(f"través {abs(self.crosswind):g} kt ({side})")
         wind = ", ".join(parts) or "sem vento"
-        return f"{wind} · QNH {self.qnh:g}"
+        return f"{wind} · QNH {self.qnh:g}" + (" · ar ON" if self.aircond else "")
 
 
 CALM = Conditions()

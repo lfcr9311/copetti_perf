@@ -84,7 +84,7 @@
   "erro": null
  },
  "TO15 ATR 72-600 v0 SBRJ 20L 30C w0 q1013.25 {}": {
-  "peso": 21247,
+  "peso": 21249,
   "flap": "FLAP 15",
   "limitante": "Obstáculo",
   "erro": null
@@ -95,14 +95,14 @@
   "limitante": "Obstáculo",
   "erro": null
  },
- "TO17 ATR 72-600 v2 SBFN 30 30C w0 q1013.25 {}": {
-  "peso": 22029,
+ "TO17 ATR 72-600 v0 SBFN 30 30C w0 q1013.25 {}": {
+  "peso": 22016,
   "flap": "FLAP 15",
   "limitante": "Obstáculo",
   "erro": null
  },
- "TO18 ATR 72-600 v3 SBKG 15 30C w0 q1013.25 {}": {
-  "peso": 22265,
+ "TO18 ATR 72-600 v1 SBKG 15 30C w0 q1013.25 {}": {
+  "peso": 22160,
   "flap": "FLAP 15",
   "limitante": "Obstáculo",
   "erro": null

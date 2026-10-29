@@ -9,7 +9,7 @@ máximo de pouso de despacho, usando os motores de cálculo originais dos fabric
 | Aeronave | Motor | Como roda |
 |---|---|---|
 | A320, A321neo, A321F, A330 (RR Trent 772B), A330neo (Trent 7000 Step 3) | `scap_octopus.dll` (Airbus SCAP) | Wine (Linux) / Python 32 bits (Windows) |
-| ATR 72-600 | TTAM (`engines/atr/DllWrapperATR.so`) | direto no Linux, sem Wine |
+| ATR 72-600 (PW127M) | TTAM (`TTAM.dll`) pelo `SCAPApp.exe` oficial da ATR | Wine + Mono; precisa de `License`/`LicenseKey` |
 | E190, E195, E195-E2 | `takeoff_module.exe` (ETM170 / ETME2) | Wine; não informa V1/VR/V2 |
 
 Pouso (despacho): Airbus pelo `scap_octopus.dll`, E195 e E195-E2 pelas DLLs ELM170/ELME2
@@ -29,7 +29,6 @@ sudo bash deploy/instalar_dependencias.sh
 |---|---|
 | `wine`, `wine32:i386`, `wine64` | `scap_octopus.dll` (Airbus), `takeoff_module.exe` e as DLLs da Embraer (Windows 32 bits) |
 | `python3` | o app (só biblioteca padrão) |
-| `libgfortran5` | motor do ATR (`engines/atr/DllWrapperATR.so`) |
 | `gcc-mingw-w64-i686` | compila `engines/loader/scaploader.exe`, o carregador em C das DLLs da Embraer (`engines/loader/build.sh`). O `.exe` já vem no Git; o compilador só é preciso para recompilar |
 
 ## Abrir o app
@@ -164,7 +163,7 @@ app/                      o programa
 engines/                  motores dos fabricantes
   airbus/                 scap_octopus.dll, octocnf, errors.cnf, limits.cnf, config/
   embraer/                takeoff_module.exe, ETM170, ETME2, ELM170 (pouso), TRACE_TO.AFM
-  atr/                    DllWrapperATR.so (decolagem), SCAP_APS_2.7.1/ (pouso; licença fora do Git)
+  atr/                    SCAP_APS_2.7.1/ (SCAPApp, TTAM/TLAM e base MUE6DC3E; licença fora do Git)
   common/                 DFORRT.DLL, msvcr120.dll (runtime das DLLs Windows)
   loader/                 scaploader.c/.exe (carregador das DLLs de pouso da Embraer) e build.sh
 databases/                bases de desempenho: airbus/ (.pre e sem extensão), embraer/ (.DAT, .pdm), atr/ (.pdf)

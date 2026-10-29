@@ -4,16 +4,16 @@ paralelo (pastas de trabalho separadas).
 Motores (Aircraft.engine):
   octopus         Airbus (airbus.py)
   takeoff_module  Embraer E1/E2 (embraer.py)
-  ttam            ATR (atr.py)
+  ttam            ATR (atr.py: TTAM.dll pelo SCAPApp.exe)
 """
 
 import os
-import platform
 import threading
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import contextmanager
 
-from ..paths import ATR_SO, find_file
+from .. import scapapp
+from ..paths import ATR_PACKAGE, find_file
 from . import airbus, atr, embraer
 from .common import CALM, Conditions, ScapError, missing_databases  # noqa: F401
 from .airbus import build_input, find_example, read_value  # noqa: F401
@@ -23,17 +23,17 @@ def check(aircraft, variant):
     if not aircraft.supported:
         raise ScapError(f"{aircraft.name} ainda nao esta ligado "
                         f"(motor {aircraft.engine})")
+    if aircraft.engine == "ttam":        # base e licenca ficam no pacote da ATR
+        missing = [n for n in scapapp.ARQUIVOS + ("data/" + scapapp.BASE,)
+                   if not (ATR_PACKAGE / n).exists()]
+        if missing:
+            raise ScapError(f"Falta no pacote da ATR ({ATR_PACKAGE}): " + ", ".join(missing))
+        return
     if aircraft.engine == "octopus":
         engine_files = airbus.ENGINE_FILES
         airbus.find_example(variant)
-    elif aircraft.engine == "takeoff_module":
-        engine_files = embraer.COPY_FILES
     else:
-        if platform.system() != "Linux":
-            raise ScapError("O ATR so roda no Linux (DllWrapperATR.so)")
-        if not ATR_SO.exists():
-            raise ScapError(f"Nao achei {ATR_SO}")
-        engine_files = ()
+        engine_files = embraer.COPY_FILES
     missing = missing_databases(variant) + [
         n for n in engine_files if find_file(n) is None]
     if missing:
@@ -145,7 +145,7 @@ def compute_tasks(tasks, workers=None, on_progress=None):
                 res = compute(aircraft, variant, runway, temp, slot, align,
                               cond=cond)
         except ScapError as e:
-            res = {"temperature": temp, "error": str(e)}
+            res = {"temperature": temp, "error": str(e), "entrada": e.entrada}
         with lock:
             done[0] += 1
             count = done[0]

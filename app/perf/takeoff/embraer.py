@@ -158,7 +158,28 @@ def compute(aircraft, variant, runway, temperature, align, slot=0,
     performance (E2: aviso NO PERFORMANCE; E1: na busca do flap otimo, um
     flap que da erro vira estrutural). Conferencia: o flap informado fixo;
     se nao valer, cada flap fixo e fica o maior valido."""
+    if cond and cond.aircond:
+        raise ScapError("Ar-condicionado ON ainda não disponível no Embraer "
+                        "(o takeoff_module fixa CONF(4) = 2, OFF)")
     folder = prepare_workdir(variant, slot)
+    try:
+        res = _compute(folder, aircraft, variant, runway, temperature, align,
+                       timeout, retries, cond)
+    except ScapError as e:
+        e.entrada = _entrada(folder)
+        raise
+    res["entrada"] = _entrada(folder)
+    return res
+
+
+def _entrada(folder):
+    """takeoff_data.dat da ultima execucao (a da conferencia de flap, se houve)."""
+    dat = folder / "takeoff_data.dat"
+    return dat.read_text(errors="replace") if dat.exists() else None
+
+
+def _compute(folder, aircraft, variant, runway, temperature, align, timeout,
+             retries, cond):
     fixed = cond.flap if cond else None
     run = lambda flap: _run(folder, aircraft, variant, runway, temperature,
                             align, cond, flap, timeout, retries)

@@ -6,7 +6,6 @@
 #   - Wine 32 bits     scap_octopus.dll (Airbus), takeoff_module.exe e as DLLs
 #                      da Embraer sao programas Windows de 32 bits
 #   - Python 3         o app (so biblioteca padrao)
-#   - libgfortran5     o motor do ATR (engines/atr/DllWrapperATR.so)
 #   - MinGW i686       compila o engines/loader/scaploader.exe (carregador
 #                      em C das DLLs da Embraer; o .exe ja vem pronto no Git,
 #                      o compilador so e preciso para recompilar)
@@ -34,7 +33,7 @@ dpkg --add-architecture i386
 apt-get update -q
 apt-get install -y -q \
     ca-certificates curl gzip git \
-    python3 libgfortran5 \
+    python3 \
     wine wine32:i386 wine64 \
     gcc-mingw-w64-i686
 ok "$(python3 --version)"

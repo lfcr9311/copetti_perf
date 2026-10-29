@@ -4,7 +4,7 @@
 # (EC2 da AWS, Oracle Cloud ou qualquer maquina Ubuntu/Debian x86_64).
 #
 # Instala TUDO: bibliotecas do sistema, Wine 32 bits (Airbus e Embraer),
-# Python 3, libgfortran (ATR), nginx, swap (maquinas pequenas), o servico
+# Python 3, nginx, swap (maquinas pequenas), o servico
 # "perf" (server.py sempre ligado) e testa os tres motores de calculo no fim.
 #
 # Uso, de dentro da pasta fortran no servidor:
@@ -84,7 +84,7 @@ dpkg --add-architecture i386
 apt-get update -q
 apt-get install -y -q \
     ca-certificates curl gzip rsync tmux procps psmisc \
-    python3 libgfortran5 \
+    python3 \
     wine wine32:i386 wine64 \
     gcc-mingw-w64-i686 \
     nginx
@@ -114,11 +114,25 @@ ok "pastas app/work/ e app/results/ prontas"
 
 # ----------------------------------------------------------------- wine
 passo "Preparando o Wine para o usuario $RUN_USER"
-# sem tela e sem baixar Mono/Gecko (os motores nao usam)
+# sem tela e sem Gecko. O Mono (.NET do Wine) e preciso: o SCAPApp.exe do
+# ATR (decolagem e pouso) e .NET. O wineboot instala sozinho o .msi do Mono
+# que estiver em ~/.cache/wine; a versao tem que casar com a do Wine.
+WINE_VER=$(wine --version 2>/dev/null | sed -E 's/^wine-([0-9]+)\..*/\1/')
+case "$WINE_VER" in
+    8) MONO_VER=7.4.0 ;; 9) MONO_VER=8.1.0 ;; 10) MONO_VER=9.4.0 ;; *) MONO_VER= ;;
+esac
+if [ -n "$MONO_VER" ] && [ ! -d "$RUN_HOME/.wine/drive_c/windows/mono" ]; then
+    sudo -u "$RUN_USER" mkdir -p "$RUN_HOME/.cache/wine"
+    sudo -u "$RUN_USER" curl -fsSL -o "$RUN_HOME/.cache/wine/wine-mono-$MONO_VER-x86.msi" \
+        "https://dl.winehq.org/wine/wine-mono/$MONO_VER/wine-mono-$MONO_VER-x86.msi" \
+        || falha "Nao consegui baixar o Wine Mono $MONO_VER"
+fi
 sudo -u "$RUN_USER" env HOME="$RUN_HOME" WINEDEBUG=-all \
-    WINEDLLOVERRIDES="mscoree,mshtml=" timeout 300 wineboot --init >/dev/null 2>&1 || true
+    WINEDLLOVERRIDES="mshtml=" timeout 600 wineboot --init >/dev/null 2>&1 || true
 sudo -u "$RUN_USER" env HOME="$RUN_HOME" timeout 120 wineserver --wait >/dev/null 2>&1 || true
 [ -d "$RUN_HOME/.wine" ] && ok "prefixo em $RUN_HOME/.wine" || falha "O Wine nao criou $RUN_HOME/.wine"
+[ -d "$RUN_HOME/.wine/drive_c/windows/mono" ] && ok "Wine Mono instalado" \
+    || falha "Sem Wine Mono (Wine $WINE_VER): o ATR nao vai calcular"
 
 # ----------------------------------------------------------------- teste dos motores
 passo "Testando os motores de calculo (SBKP 15, 25 C)"
@@ -142,7 +156,7 @@ for name in ("A320", "E195-E2", "ATR 72-600"):
 raise SystemExit(0 if ok else 1)
 EOF
 then
-    falha "Algum motor nao calculou (veja acima). Confira se a pasta fortran foi copiada inteira, com as bases (.pdm, .DAT, .BDB)."
+    falha "Algum motor nao calculou (veja acima). Confira se a pasta fortran foi copiada inteira, com as bases (.pdm, .DAT, .BDB) e a License/LicenseKey da ATR em engines/atr/SCAP_APS_2.7.1."
 fi
 
 # ----------------------------------------------------------------- senha

@@ -5,7 +5,7 @@ takeoff_data.dat (AIRBUS320, AIRBUS330, AIRBUS330NEO, EMBRAER195, E195-E2...).
 
 Motores de calculo (Aircraft.engine):
   octopus         Airbus: scap_octopus.dll le scap.in / grava SCAP.OUT
-  ttam            ATR: TTAM do DllWrapperATR.so (Linux), dados nos COMMON
+  ttam            ATR: TTAM.dll pelo SCAPApp.exe oficial da ATR (Wine + Mono)
   takeoff_module  Embraer E1/E2: takeoff_module.exe (Wine) com takeoff_data.dat
 """
 
@@ -84,16 +84,12 @@ AIRCRAFT = (
         Variant("TRENT7000-STEP3", "AB941C02", "XB941C02.pre", "FAR",
                 "scap_A330NEO-TRENT7000-STEP3.in.example", label="RR Trent 7000 · Step 3"),
     ), align="AIRBUS 330 NEO", cg=CG_A330NEO, mlw=191000),
-    # ACMDBI do ATR conforme o INPUT.FOR (PW127M_M/PW127F_M -> MUE6DC3A)
+    # ATR: so o PW127M; base MUE6DC3E do pacote SCAP da ATR (decolagem e pouso)
     Aircraft("ATR 72-600", "ATR72-600", "ttam", (
-        Variant("PW127M_M", "MUE6DC3A.PDF", "", "FAR", rating="BOOSTON+RTOON",
+        Variant("PW127M_M", "MUE6DC3E.PDF", "", "FAR", rating="BOOSTON+RTOON",
                 mtow=23000, label="PW127M · Boost ON"),
-        Variant("PW127M_M", "MUE6DC3A.PDF", "", "FAR", rating="BOOSTOFF+RTOON",
+        Variant("PW127M_M", "MUE6DC3E.PDF", "", "FAR", rating="BOOSTOFF+RTOON",
                 mtow=23000, label="PW127M · Boost OFF"),
-        Variant("PW127F_M", "MUE6DC3A.PDF", "", "FAR", rating="BOOSTOFF+RTOON",
-                mtow=22800, label="PW127F · Boost OFF"),
-        Variant("PW127XT_M", "MUE6DB3D.PDF", "", "FAR", rating="BOOSTON+RTOON",
-                mtow=23000, label="PW127XT · Boost ON"),
     ), align="ATR 72-600", mlw=22350),
     # E195 (E1): o takeoff_module escolhe a base pela largura da pista
     # (INPUT.FOR); aqui ficam a de pista larga (>= 30 m) e a de pista estreita.

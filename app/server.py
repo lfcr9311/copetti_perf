@@ -184,7 +184,8 @@ def build_cases(body):
         winds = [{"calm": (0.0, 0.0), "head": (speed, 0.0),
                   "tail": (-speed, 0.0), "cross": (0.0, side * speed)}
                  .get(kind, (0.0, 0.0))]
-    cases = [(t, takeoff.Conditions(w, x, q))
+    aircond = body.get("ar") == "on"        # ar-condicionado na decolagem (CONF 4)
+    cases = [(t, takeoff.Conditions(w, x, q, aircond=aircond))
              for t in temps for w, x in winds for q in qnhs]
     if len(cases) > MAX_CASES:
         raise BadRequest(f"São {len(cases)} combinações; o limite é "
@@ -495,6 +496,8 @@ def calc_job(body):
                            v1_min=res["v1_min"], v1_max=res["v1_max"],
                            vr=res["vr"], v2=res["v2"], error="")
                 base.update(result_row(res))
+            if len(tasks) == 1:            # entrada do motor so no calculo unico
+                row["entrada"] = res.get("entrada")
             rows.append(row)
             csv_rows.append(base)
         name = save_csv(csv_rows, planes, runways, cases)
@@ -783,7 +786,7 @@ def pouso_calc(body):
 # ---------------------------------------------------------------- pista bloqueada
 
 BLOQUEIO_COLUMNS = ["aircraft", "engine", "icao", "rwy", "position_m", "distance_m", "available_m",
-                    "temp_c", "wind_kt", "crosswind_kt", "qnh_hpa", "tora_m", "asda_m", "toda_m",
+                    "temp_c", "wind_kt", "crosswind_kt", "qnh_hpa", "air_cond", "tora_m", "asda_m", "toda_m",
                     "lda_m", "n_obst", "mtow_kg", "flap", "to_limit", "to_error",
                     "mlw_kg", "ld_limit", "ld_error"]
 
@@ -845,6 +848,7 @@ def bloqueio_job(body):
                             "rwy": r["end"], "position_m": r["position"], "distance_m": r["distance"],
                             "available_m": r["available"], "temp_c": r["temp"], "wind_kt": r["wind"],
                             "crosswind_kt": r["crosswind"], "qnh_hpa": r["qnh"],
+                            "air_cond": "ON" if cases[0][1].aircond else "OFF",
                             "tora_m": r.get("tora"), "asda_m": r.get("asda"), "toda_m": r.get("toda"),
                             "lda_m": r.get("lda"), "n_obst": r.get("n_obst"),
                             "mtow_kg": r.get("mtow"), "flap": r.get("flap"),
@@ -852,7 +856,8 @@ def bloqueio_job(body):
                             "mlw_kg": round(r["mlw"]) if r.get("mlw") is not None else None,
                             "ld_limit": r.get("ld_limit"), "ld_error": r.get("ld_error") or r.get("error")})
         return {**out, "icao": icao, "airport": AIRPORTS[icao]["name"].title(), "csv": name,
-                "margem": vals["margem"], "altura": vals["altura"], "molhada": wet}
+                "margem": vals["margem"], "altura": vals["altura"], "molhada": wet,
+                "ar": cases[0][1].aircond}
 
     return start_job("bloqueio", work)
 

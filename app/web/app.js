@@ -151,6 +151,7 @@ function conditionsForm(root, { tempMode = "single", onEnter, onChange }) {
     temp: { mode: tempMode, value: "25", min: "-10", max: "45", step: "1" },
     wind: { mode: "single", kind: "calm", speed: "10", side: "right", min: "-10", max: "20", step: "5" },
     qnh: { mode: "single", value: "1013,25", min: "990", max: "1030", step: "10" },
+    ar: "off",                   // ar-condicionado na decolagem (CONF 4); Airbus e ATR
   };
   let crossNote = "";
 
@@ -212,6 +213,10 @@ function conditionsForm(root, { tempMode = "single", onEnter, onChange }) {
         ], "kt"),
       block("qnh", "QNH", null, () => h("div", { class: "inline-inputs" },
         input(st.qnh, "value", 96), h("span", { class: "unit", text: "hPa" })), "hPa"),
+      h("div", { class: "cond" },
+        h("div", { class: "cond-head" }, h("span", {}, "Ar-condicionado", h("small", { text: "na decolagem" })),
+          seg([["off", "OFF"], ["on", "ON"]], st.ar, (k) => { st.ar = k; })),
+        st.ar === "on" ? h("p", { class: "hint", text: "ON só nos Airbus e no ATR; o Embraer ainda calcula só com OFF." }) : null),
     );
     updatePreviews();
   }
@@ -236,7 +241,7 @@ function conditionsForm(root, { tempMode = "single", onEnter, onChange }) {
     : { mode: "single", value: obj.value };
   return {
     spec: () => ({
-      temp: pack(st.temp), qnh: pack(st.qnh),
+      temp: pack(st.temp), qnh: pack(st.qnh), ar: st.ar,
       wind: st.wind.mode === "range" ? pack(st.wind)
         : { mode: "single", kind: st.wind.kind, speed: st.wind.speed, side: st.wind.side },
     }),
@@ -249,6 +254,7 @@ function conditionsForm(root, { tempMode = "single", onEnter, onChange }) {
     getState: () => JSON.parse(JSON.stringify(st)),
     setState: (saved) => {
       for (const k of ["temp", "wind", "qnh"]) if (saved && saved[k]) Object.assign(st[k], saved[k]);
+      st.ar = saved?.ar === "on" ? "on" : "off";
       render();
     },
     /** Resumo curto: "25 °C · sem vento · QNH 1013,25". */
@@ -263,7 +269,7 @@ function conditionsForm(root, { tempMode = "single", onEnter, onChange }) {
       const wind = w.mode === "range" ? `vento ${span(w, " kt")}`
         : w.kind === "calm" ? "sem vento"
           : `${{ head: "proa", tail: "cauda", cross: "través" }[w.kind]} ${plain(n(w.speed))} kt`;
-      return `${span(st.temp, " °C")} · ${wind} · QNH ${span(st.qnh, "")}`;
+      return `${span(st.temp, " °C")} · ${wind} · QNH ${span(st.qnh, "")}${st.ar === "on" ? " · ar ON" : ""}`;
     },
   };
 }
@@ -1392,10 +1398,15 @@ function renderResult() {
   renderViews();
 }
 
+// arquivo de entrada que foi para o motor (scap.in, XML do ATR, takeoff_data.dat)
+const entradaBox = (r) => r.entrada ? [h("details", { class: "entrada" },
+  h("summary", { text: "Entrada do motor" }), h("pre", { text: r.entrada }))] : [];
+
 function renderHero(r) {
   const hero = $("#r-hero");
   if (r.error) {
-    hero.replaceChildren(h("div", { class: "error-box" }, h("strong", { text: "O motor devolveu erro" }), r.error));
+    hero.replaceChildren(h("div", { class: "error-box" }, h("strong", { text: "O motor devolveu erro" }), r.error),
+      ...entradaBox(r));
     return;
   }
   const tile = (label, value, cls) => h("dl", { class: `tile${cls ? " " + cls : ""}` }, h("dt", { text: label }), h("dd", { text: value }));
@@ -1407,6 +1418,7 @@ function renderHero(r) {
       tile("Flap", r.flap), tile("Limitado por", r.limit_text, "wide"),
       ...(state.result.speedsOf[r.plane] ? [tile("V1 (kt)", v1Text(r)), tile("VR (kt)", speed(r.vr)), tile("V2 (kt)", speed(r.v2))]
         : [tile("V1 / VR / V2", "não informados por este motor", "full")])),
+    ...entradaBox(r),
   );
 }
 
@@ -2517,6 +2529,7 @@ function blRender() {
   blEl("tags").replaceChildren(tag("Pista", `${kg(ph.L)} m`), tag("Margem", `${kg(res.margem)} m`),
     tag("Bloqueio", res.altura > 0 ? `obstáculo de ${kg(res.altura)} ft` : "buraco (sem altura)"),
     h("span", { text: `pouso em pista ${res.molhada ? "molhada" : "seca"}` }),
+    ...(res.ar ? [h("span", { text: "ar-condicionado ON na decolagem" })] : []),
     ...(res.positions.length > 1 ? [tag("Varredura", `${kg(res.positions[0])} a ${kg(res.positions.at(-1))} m, ${res.positions.length} posições`)] : []));
   blEl("csv").href = fileUrl(res.csv);
   const seg = (label, list, cur, text, pick) => list.length < 2 ? null : h("div", { class: "bl-pick" }, h("span", { text: label }),

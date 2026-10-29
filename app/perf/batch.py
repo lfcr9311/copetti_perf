@@ -29,7 +29,7 @@ from .takeoff import embraer as takeoff_embraer
 from .takeoff import engine as takeoff
 
 COLUMNS = ["aircraft", "engine", "icao", "airport", "rwy", "to_align",
-           "n_obst", "temp_c", "wind_kt", "crosswind_kt", "qnh_hpa",
+           "n_obst", "temp_c", "wind_kt", "crosswind_kt", "qnh_hpa", "air_cond",
            "mtow_kg", "flap", "limit_code",
            "v1_min_kt", "v1_max_kt", "vr_kt", "v2_kt", "error"]
 
@@ -37,7 +37,7 @@ COLUMNS = ["aircraft", "engine", "icao", "airport", "rwy", "to_align",
 def condition_columns(cond):
     """wind_kt: + proa / - cauda; crosswind_kt: + da direita (so Airbus)."""
     return {"wind_kt": f"{cond.wind:g}", "crosswind_kt": f"{cond.crosswind:g}",
-            "qnh_hpa": f"{cond.qnh:g}"}
+            "qnh_hpa": f"{cond.qnh:g}", "air_cond": "ON" if cond.aircond else "OFF"}
 
 
 def result_row(res):

@@ -14,22 +14,13 @@ Meggitt 10.9 MJ), a que vem no pacote.
 """
 
 import argparse
-import os
-import platform
-import shutil
-import subprocess
-import xml.etree.ElementTree as ET
-from xml.sax.saxutils import escape
 from dataclasses import dataclass
 from typing import Optional
 
 from ..catalog.airports import load_airports
-from ..paths import ATR_PACKAGE as PACOTE
-from ..paths import WORK_DIR, drop_broken_link, folder_lock
+from ..scapapp import BASE, ScapAppError, rodar
+from ..scapapp import xml_entrada as xml_scap
 
-NA = 9e20
-ARQUIVOS = ("SCAPApp.exe", "SCAPLibrary.dll", "TLAM.dll", "TTAM.dll", "License", "LicenseKey")
-BASE = "MUE6DC3E.PDF"
 
 # CLIMIL(6) do TLAM (codigos do FOS)
 LIMITES = {
@@ -99,96 +90,16 @@ def textos(p):
 
 
 def xml_entrada(p):
-    """INPUT_FILE no formato do SCAP.in de referencia da ATR: uma tag por linha
-    e CRLF (o leitor do TLAM le linha a linha; tudo numa linha nao funciona).
-    Sem output_file/trace_file: a saida vai para entrada.out / entrada.log."""
-    linhas = ['<?xml version="1.0"?>', "<INPUT_FILE>",
-              "\t<interface_version>X.X</interface_version>",
-              "\t<security_code>123456789012345678901234567890</security_code>",
-              "\t<landing_spec_version>X.X</landing_spec_version>",
-              "\t<config>", "\t\t<data_files>data\\</data_files>", "\t</config>",
-              '\t<block type="LANDING" id="1">', '\t\t<case id="1">']
-    for nome, itens in blocos(p).items():
-        linhas.append(f'\t\t\t<array name="{nome}">')
-        linhas += [f'\t\t\t\t<item index="{i}"> <value>{float(v):g}</value> </item>'
-                   for i, v in itens.items()]
-        linhas.append("\t\t\t</array>")
-    linhas += [f'\t\t\t<element name="{nome}"> <value>{escape(v)}</value> </element>'
-               for nome, v in textos(p).items()]
-    linhas += ["\t\t</case>", "\t</block>", "</INPUT_FILE>", ""]
-    return "\r\n".join(linhas)
-
-
-def ler_saida(texto):
-    """OUTPUT_FILE -> (arrays {nome: {indice: valor}}, elements {nome: texto})."""
-    raiz = ET.fromstring(texto)
-    arrays, elementos = {}, {}
-    for caso in raiz.iter("case"):
-        for arr in caso.findall("array"):
-            dados = {}
-            for item in arr.findall("item"):
-                v = (item.findtext("value") or "").strip()
-                try:
-                    x = float(v)
-                    dados[int(item.get("index"))] = None if x >= NA * 0.99 else x
-                except ValueError:
-                    dados[int(item.get("index"))] = v
-            arrays[arr.get("name")] = dados
-        for el in caso.findall("element"):
-            elementos[el.get("name")] = (el.findtext("value") or "").strip()
-    return arrays, elementos
-
-
-def pasta_trabalho(slot=""):
-    if not PACOTE.is_dir():
-        raise PousoError(f"Pacote da ATR não encontrado em {PACOTE}")
-    pasta = WORK_DIR / f"atrpouso{slot}"
-    (pasta / "data").mkdir(parents=True, exist_ok=True)
-    for nome in ARQUIVOS:
-        origem = PACOTE / nome
-        if not origem.exists():
-            raise PousoError(f"Falta {nome} no pacote da ATR ({PACOTE})")
-        shutil.copy2(origem, pasta / nome)          # copia sempre: licenca nova vale
-    base = PACOTE / "data" / BASE
-    alvo = pasta / "data" / BASE
-    drop_broken_link(alvo)
-    if not (alvo.exists() or alvo.is_symlink()):
-        try:
-            alvo.symlink_to(base)
-        except OSError:
-            shutil.copy2(base, alvo)
-    return pasta
+    return xml_scap("LANDING", blocos(p), textos(p))
 
 
 def calcular(p, timeout=180, slot=""):
     """slot: pasta de trabalho (work/atrpouso<slot>); slots diferentes rodam
     em paralelo."""
-    with folder_lock(f"atrpouso{slot}"):
-        pasta = pasta_trabalho(slot)
-        for f in ("entrada.out", "entrada.log", "Error.log"):
-            (pasta / f).unlink(missing_ok=True)
-        (pasta / "entrada.xml").write_bytes(xml_entrada(p).encode("latin-1"))
-        cmd = ["SCAPApp.exe", "entrada.xml"]
-        if platform.system() == "Windows":
-            cmd[0] = str(pasta / cmd[0])
-        else:
-            cmd.insert(0, os.environ.get("SCAP_WINE", "wine"))
-        try:
-            proc = subprocess.run(cmd, cwd=pasta, env=dict(os.environ, WINEDEBUG="-all"),
-                                  stdin=subprocess.DEVNULL, capture_output=True, text=True,
-                                  errors="replace", timeout=timeout)
-        except subprocess.TimeoutExpired:
-            raise PousoError(f"O SCAPApp da ATR não terminou em {timeout} s")
-        erro = (pasta / "Error.log").read_text(errors="replace").strip() if (pasta / "Error.log").exists() else ""
-        if erro:
-            if "expired" in erro.lower():
-                erro += " — peça à ATR o arquivo License renovado (engines/atr/SCAP_APS_2.7.1/License)"
-            raise PousoError(f"ATR: {erro}")
-        saida = pasta / "entrada.out"
-        if not saida.exists() or not saida.stat().st_size:
-            log = (pasta / "entrada.log").read_text(errors="replace")[-1500:] if (pasta / "entrada.log").exists() else ""
-            raise PousoError("O SCAPApp da ATR não gerou a saída.\n" + (log or (proc.stdout + proc.stderr)[-1500:]))
-        arrays, elementos = ler_saida(saida.read_text(errors="replace"))
+    try:
+        arrays, elementos = rodar(f"atrpouso{slot}", xml_entrada(p), timeout)
+    except ScapAppError as e:
+        raise PousoError(str(e))
     c = arrays.get("CLIMIL", {})
     g = lambda i: c.get(i) if isinstance(c.get(i), float) else None
     codigo = g(6)
