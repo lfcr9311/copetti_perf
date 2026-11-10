@@ -9,6 +9,13 @@
 		reverse_proxy fmsnav:8001
 	}
 
+	# importador RPL (repositorios rpl-s3-uploader-frontend e -backend no EC2). O
+	# Caddy do rpl-frontend serve a tela em /rpl/ e repassa /rpl/api para o backend
+	@rpl path /rpl /rpl/*
+	handle @rpl {
+		reverse_proxy rpl-frontend:80
+	}
+
 	# todo o resto: motor de calculo
 	reverse_proxy perf:8765
 }
