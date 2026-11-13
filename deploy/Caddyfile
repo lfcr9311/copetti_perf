@@ -16,6 +16,13 @@
 		reverse_proxy rpl-frontend:80
 	}
 
+	# previsao Tomorrow.io (repositorio notam_tw, ~/notam_tw no EC2). Tira o prefixo:
+	# o app serve em / e o frontend usa caminhos relativos, por isso /weather -> /weather/
+	redir /weather /weather/
+	handle_path /weather/* {
+		reverse_proxy notam-tw:8000
+	}
+
 	# todo o resto: motor de calculo
 	reverse_proxy perf:8765
 }
